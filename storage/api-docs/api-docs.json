@@ -1,0 +1,2074 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Sistem Informasi Perpustakaan Sekolah (SIPUS) API",
+        "description": "Dokumentasi REST API Sistem Informasi Perpustakaan Sekolah untuk Aplikasi Siswa dan Dashboard Petugas.",
+        "contact": {
+            "email": "admin@perpustakaan.sch.id"
+        },
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "/",
+            "description": "API Server"
+        }
+    ],
+    "paths": {
+        "/api/v1/auth/login": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Login user (Student / Staff)",
+                "description": "Autentikasi user dengan email dan password. Menghasilkan Bearer token Sanctum.",
+                "operationId": "login",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "email",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "student@example.com"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "password"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Login berhasil",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Login successful"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "user": {
+                                                    "$ref": "#/components/schemas/UserResource"
+                                                },
+                                                "token": {
+                                                    "type": "string",
+                                                    "example": "1|2G0iX..."
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Credential tidak valid",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Invalid credentials."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validasi gagal",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Validation failed"
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/logout": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Logout user",
+                "description": "Menghapus token akses aktif saat ini.",
+                "operationId": "logout",
+                "responses": {
+                    "200": {
+                        "description": "Logout berhasil",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Logged out successfully"
+                                        },
+                                        "data": {
+                                            "type": "null",
+                                            "example": null
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/auth/me": {
+            "get": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Get Current User Profile",
+                "description": "Mengambil detail profil user yang sedang login.",
+                "operationId": "me",
+                "responses": {
+                    "200": {
+                        "description": "Data user berhasil diambil",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "User profile retrieved successfully"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/UserResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/books": {
+            "get": {
+                "tags": [
+                    "Books"
+                ],
+                "summary": "Katalog buku perpustakaan (Publik / OPAC)",
+                "description": "Menampilkan daftar katalog buku dengan pagination dan filter pencarian berdasarkan judul, penulis, penerbit, atau ISBN. Dapat diakses publik tanpa login.",
+                "operationId": "getPublicBooks",
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Kata kunci pencarian (judul, penulis, penerbit, ISBN)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "available_only",
+                        "in": "query",
+                        "description": "Filter hanya buku yang stoknya tersedia (true/1)",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Jumlah item per halaman (default 10)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 10
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Nomor halaman",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Daftar buku berhasil diambil",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Books retrieved successfully"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/BookResource"
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": "object"
+                                        },
+                                        "links": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/books/{id}": {
+            "get": {
+                "tags": [
+                    "Books"
+                ],
+                "summary": "Detail buku (Publik)",
+                "description": "Mengambil detail buku berdasarkan ID beserta ketersediaan stok. Dapat diakses publik tanpa login.",
+                "operationId": "getPublicBookDetail",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID Buku",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Detail buku berhasil diambil",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Book retrieved successfully"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/BookResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Buku tidak ditemukan",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Resource not found."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/borrowings": {
+            "post": {
+                "tags": [
+                    "Borrowings"
+                ],
+                "summary": "Ajukan peminjaman buku (Siswa & Guru / Member)",
+                "description": "Siswa atau Guru mengajukan peminjaman satu atau beberapa buku. Status awal otomatis PENDING. Maksimal durasi pinjam 3 hari untuk siswa dan 7 hari untuk guru.",
+                "operationId": "storeBorrowing",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "items"
+                                ],
+                                "properties": {
+                                    "due_date": {
+                                        "description": "Batas pengembalian (maks 3 hari siswa, 7 hari guru)",
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2026-10-02"
+                                    },
+                                    "notes": {
+                                        "type": "string",
+                                        "example": "Untuk keperluan belajar ujian"
+                                    },
+                                    "items": {
+                                        "type": "array",
+                                        "items": {
+                                            "required": [
+                                                "book_id",
+                                                "quantity"
+                                            ],
+                                            "properties": {
+                                                "book_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "quantity": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Pengajuan peminjaman berhasil dibuat",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Borrowing request created successfully"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/BorrowingResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validasi gagal atau stok buku tidak mencukupi",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Validation failed"
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Hanya siswa yang dapat mengajukan peminjaman",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Forbidden. You do not have permission to access this resource."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/borrowings/me": {
+            "get": {
+                "tags": [
+                    "Borrowings"
+                ],
+                "summary": "Daftar peminjaman saya (Siswa)",
+                "description": "Mengambil riwayat transaksi peminjaman milik siswa yang sedang login. Mendukung filter status dan pagination.",
+                "operationId": "getMyBorrowings",
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "description": "Filter berdasarkan status (PENDING, APPROVED, REJECTED, BORROWED, RETURNED)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "PENDING",
+                                "APPROVED",
+                                "REJECTED",
+                                "BORROWED",
+                                "RETURNED"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Jumlah item per halaman",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 10
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Nomor halaman",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Daftar peminjaman berhasil diambil",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Borrowings retrieved successfully"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/BorrowingResource"
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": "object"
+                                        },
+                                        "links": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/borrowings/{id}": {
+            "get": {
+                "tags": [
+                    "Borrowings"
+                ],
+                "summary": "Detail transaksi peminjaman",
+                "description": "Melihat detail transaksi peminjaman. Siswa hanya dapat melihat transaksi miliknya sendiri, petugas dapat melihat seluruh transaksi.",
+                "operationId": "getBorrowingDetail",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID Transaksi Peminjaman",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Detail peminjaman berhasil diambil",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Borrowing retrieved successfully"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/BorrowingResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Akses ditolak (bukan pemilik atau bukan petugas)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Forbidden. You do not have permission to access this resource."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Transaksi peminjaman tidak ditemukan",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Resource not found."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/staff/books": {
+            "get": {
+                "tags": [
+                    "Staff - Books"
+                ],
+                "summary": "Daftar buku inventaris (Petugas)",
+                "description": "Menampilkan semua buku inventaris dengan filter pencarian dan pagination.",
+                "operationId": "getStaffBooks",
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Pencarian judul, penulis, penerbit, atau ISBN",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Jumlah item per halaman",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 10
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Daftar buku berhasil diambil",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Books retrieved successfully"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/BookResource"
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": "object"
+                                        },
+                                        "links": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Staff - Books"
+                ],
+                "summary": "Tambah buku baru (Petugas)",
+                "description": "Menambahkan buku baru ke sistem perpustakaan.",
+                "operationId": "storeBook",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "title",
+                                    "author",
+                                    "stock"
+                                ],
+                                "properties": {
+                                    "title": {
+                                        "type": "string",
+                                        "example": "Laskar Pelangi"
+                                    },
+                                    "author": {
+                                        "type": "string",
+                                        "example": "Andrea Hirata"
+                                    },
+                                    "publisher": {
+                                        "type": "string",
+                                        "example": "Bentang Pustaka"
+                                    },
+                                    "publication_year": {
+                                        "type": "integer",
+                                        "example": 2005
+                                    },
+                                    "isbn": {
+                                        "type": "string",
+                                        "example": "978-979-3062-79-2"
+                                    },
+                                    "stock": {
+                                        "type": "integer",
+                                        "example": 10
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "example": "Novel tentang perjuangan sepuluh anak di Belitung."
+                                    },
+                                    "cover": {
+                                        "type": "string",
+                                        "example": "https://example.com/covers/laskar-pelangi.jpg"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Buku berhasil ditambahkan",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Book created successfully"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/BookResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validasi gagal",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Validation failed"
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/staff/books/{id}": {
+            "get": {
+                "tags": [
+                    "Staff - Books"
+                ],
+                "summary": "Detail buku inventaris (Petugas)",
+                "description": "Mengambil detail buku berdasarkan ID.",
+                "operationId": "getStaffBookDetail",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Detail buku berhasil diambil",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Book retrieved successfully"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/BookResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Buku tidak ditemukan",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Resource not found."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Staff - Books"
+                ],
+                "summary": "Ubah data buku (Petugas)",
+                "description": "Memperbarui data dan stok buku.",
+                "operationId": "updateBook",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "title": {
+                                        "type": "string",
+                                        "example": "Laskar Pelangi Edisi Spesial"
+                                    },
+                                    "author": {
+                                        "type": "string",
+                                        "example": "Andrea Hirata"
+                                    },
+                                    "stock": {
+                                        "type": "integer",
+                                        "example": 15
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Buku berhasil diperbarui",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Book updated successfully"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/BookResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validasi gagal",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Validation failed"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Staff - Books"
+                ],
+                "summary": "Hapus buku (Soft delete) (Petugas)",
+                "description": "Menonaktifkan / menghapus buku secara soft delete agar riwayat transaksi masa lalu tetap utuh.",
+                "operationId": "deleteBook",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Buku berhasil dihapus (soft delete)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Book deleted successfully"
+                                        },
+                                        "data": {
+                                            "type": "null",
+                                            "example": null
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Buku tidak ditemukan",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Resource not found."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/staff/borrowings": {
+            "get": {
+                "tags": [
+                    "Staff - Borrowings"
+                ],
+                "summary": "Daftar pengajuan peminjaman (Petugas)",
+                "description": "Menampilkan seluruh data peminjaman buku dengan dukungan filter status (misal: PENDING) dan pagination.",
+                "operationId": "getStaffBorrowings",
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "description": "Filter berdasarkan status (PENDING, APPROVED, REJECTED, BORROWED, RETURNED)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "PENDING",
+                                "APPROVED",
+                                "REJECTED",
+                                "BORROWED",
+                                "RETURNED"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Jumlah item per halaman",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 10
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Nomor halaman",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Daftar peminjaman berhasil diambil",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Borrowings retrieved successfully"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/BorrowingResource"
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": "object"
+                                        },
+                                        "links": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/staff/borrowings/{id}/approve": {
+            "post": {
+                "tags": [
+                    "Staff - Borrowings"
+                ],
+                "summary": "Setujui pengajuan peminjaman (PENDING -> APPROVED)",
+                "description": "Petugas menyetujui pengajuan peminjaman. Buku belum dianggap dipinjam dan stok belum berkurang sampai dilakukan konfirmasi serah terima.",
+                "operationId": "approveBorrowing",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID Peminjaman",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Pengajuan berhasil disetujui",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Borrowing approved successfully"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/BorrowingResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Transisi status tidak valid (bukan PENDING)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Perubahan status dari REJECTED ke APPROVED tidak diizinkan."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/staff/borrowings/{id}/reject": {
+            "post": {
+                "tags": [
+                    "Staff - Borrowings"
+                ],
+                "summary": "Tolak pengajuan peminjaman (PENDING -> REJECTED)",
+                "description": "Petugas menolak pengajuan peminjaman yang berstatus PENDING.",
+                "operationId": "rejectBorrowing",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID Peminjaman",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "notes": {
+                                        "type": "string",
+                                        "example": "Buku sedang dalam perbaikan fisik."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Pengajuan berhasil ditolak",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Borrowing rejected successfully"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/BorrowingResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Transisi status tidak valid (bukan PENDING)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/staff/borrowings/{id}/borrow": {
+            "post": {
+                "tags": [
+                    "Staff - Borrowings"
+                ],
+                "summary": "Konfirmasi penyerahan buku (APPROVED -> BORROWED)",
+                "description": "Petugas mengonfirmasi buku telah diserahkan kepada siswa. Transaksi menjadi aktif, borrowed_at dicatat, dan stok buku berkurang.",
+                "operationId": "confirmBorrowing",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID Peminjaman",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Peminjaman berhasil dikonfirmasi dan stok berkurang",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Borrowing confirmed successfully. Books handed over to student."
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/BorrowingResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Transisi status tidak valid atau stok buku tidak mencukupi",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/staff/borrowings/{id}/return": {
+            "post": {
+                "tags": [
+                    "Staff - Borrowings"
+                ],
+                "summary": "Catat pengembalian buku (BORROWED -> RETURNED)",
+                "description": "Petugas mencatat bahwa buku telah dikembalikan oleh siswa. Transaksi selesai, returned_at dicatat, dan stok buku bertambah kembali.",
+                "operationId": "returnBorrowing",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID Peminjaman",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Buku berhasil dicatat pengembaliannya dan stok bertambah",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Borrowing returned successfully. Books added back to stock."
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/BorrowingResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Transisi status tidak valid (bukan BORROWED)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/staff/borrowings/history": {
+            "get": {
+                "tags": [
+                    "Staff - Borrowings"
+                ],
+                "summary": "Riwayat transaksi peminjaman (Petugas)",
+                "description": "Melihat seluruh histori transaksi peminjaman (biasanya RETURNED atau REJECTED, atau seluruh status) dengan pencarian dan pagination.",
+                "operationId": "getStaffBorrowingHistory",
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "description": "Filter berdasarkan status tertentu",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Jumlah item per halaman",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 10
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Nomor halaman",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Riwayat transaksi berhasil diambil",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Transaction history retrieved successfully"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/BorrowingResource"
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": "object"
+                                        },
+                                        "links": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/staff/borrowings/direct": {
+            "post": {
+                "tags": [
+                    "Staff - Borrowings"
+                ],
+                "summary": "Peminjaman langsung di tempat (Walk-in / Tamu / Siswa / Guru)",
+                "description": "Petugas mencatat peminjaman langsung di tempat untuk siswa terdaftar, guru/staf, maupun tamu umum. Status langsung menjadi BORROWED, stok buku otomatis berkurang, dan batas waktu pengembalian maksimal 3 hari.",
+                "operationId": "directBorrowingByStaff",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "items"
+                                ],
+                                "properties": {
+                                    "user_id": {
+                                        "description": "ID siswa/user terdaftar (opsional jika tamu)",
+                                        "type": "integer",
+                                        "example": 2,
+                                        "nullable": true
+                                    },
+                                    "borrower_name": {
+                                        "description": "Nama peminjam (wajib jika user_id kosong)",
+                                        "type": "string",
+                                        "example": "Ahmad Pengunjung"
+                                    },
+                                    "borrower_phone": {
+                                        "description": "Nomor telepon peminjam",
+                                        "type": "string",
+                                        "example": "081234567890"
+                                    },
+                                    "borrower_identity_number": {
+                                        "description": "Nomor identitas peminjam (NIS/NIP/KTP)",
+                                        "type": "string",
+                                        "example": "3201234567890001"
+                                    },
+                                    "borrower_type": {
+                                        "type": "string",
+                                        "example": "guest",
+                                        "enum": [
+                                            "student",
+                                            "teacher",
+                                            "staff",
+                                            "guest"
+                                        ]
+                                    },
+                                    "due_date": {
+                                        "description": "Batas pengembalian (maksimal 3 hari untuk siswa/tamu, 7 hari untuk guru)",
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2026-10-02"
+                                    },
+                                    "notes": {
+                                        "type": "string",
+                                        "example": "Peminjaman langsung di perpustakaan"
+                                    },
+                                    "items": {
+                                        "type": "array",
+                                        "items": {
+                                            "required": [
+                                                "book_id",
+                                                "quantity"
+                                            ],
+                                            "properties": {
+                                                "book_id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "quantity": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Peminjaman langsung berhasil dicatat",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Direct borrowing created successfully"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/BorrowingResource"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validasi gagal atau stok buku tidak mencukupi",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/staff/dashboard": {
+            "get": {
+                "tags": [
+                    "Staff - Dashboard"
+                ],
+                "summary": "Ringkasan statistik dashboard petugas",
+                "description": "Menampilkan total buku, pengajuan pending, peminjaman aktif (BORROWED), dan transaksi selesai (RETURNED). Hanya untuk role staff.",
+                "operationId": "getStaffDashboard",
+                "responses": {
+                    "200": {
+                        "description": "Statistik dashboard berhasil diambil",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Dashboard statistics retrieved successfully"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "total_books": {
+                                                    "type": "integer",
+                                                    "example": 120
+                                                },
+                                                "pending_borrowings": {
+                                                    "type": "integer",
+                                                    "example": 5
+                                                },
+                                                "active_borrowings": {
+                                                    "type": "integer",
+                                                    "example": 12
+                                                },
+                                                "completed_borrowings": {
+                                                    "type": "integer",
+                                                    "example": 45
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden - Hanya untuk petugas",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Forbidden. You do not have permission to access this resource."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "UserResource": {
+                "title": "User Resource",
+                "description": "User data model",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Budi Santoso"
+                    },
+                    "email": {
+                        "type": "string",
+                        "example": "student@example.com"
+                    },
+                    "identity_number": {
+                        "description": "Nomor Induk Siswa (NIS) / NIP Guru / ID Staff",
+                        "type": "string",
+                        "example": "20241001",
+                        "nullable": true
+                    },
+                    "role": {
+                        "type": "string",
+                        "example": "student",
+                        "enum": [
+                            "student",
+                            "teacher",
+                            "staff"
+                        ]
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-09-29T10:00:00.000000Z"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-09-29T10:00:00.000000Z"
+                    }
+                },
+                "type": "object"
+            },
+            "BookResource": {
+                "title": "Book Resource",
+                "description": "Book data model",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "title": {
+                        "type": "string",
+                        "example": "Laskar Pelangi"
+                    },
+                    "author": {
+                        "type": "string",
+                        "example": "Andrea Hirata"
+                    },
+                    "publisher": {
+                        "type": "string",
+                        "example": "Bentang Pustaka"
+                    },
+                    "publication_year": {
+                        "type": "integer",
+                        "example": 2005
+                    },
+                    "isbn": {
+                        "type": "string",
+                        "example": "978-979-3062-79-2"
+                    },
+                    "stock": {
+                        "type": "integer",
+                        "example": 10
+                    },
+                    "is_available": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "description": {
+                        "type": "string",
+                        "example": "Novel tentang perjuangan sepuluh anak di Belitung."
+                    },
+                    "cover": {
+                        "type": "string",
+                        "example": "https://example.com/covers/laskar-pelangi.jpg"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-09-29T10:00:00.000000Z"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-09-29T10:00:00.000000Z"
+                    }
+                },
+                "type": "object"
+            },
+            "BorrowingItemResource": {
+                "title": "Borrowing Item Resource",
+                "description": "Detail item buku dalam peminjaman",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "borrowing_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "book_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "quantity": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "book": {
+                        "$ref": "#/components/schemas/BookResource"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-09-29T10:00:00.000000Z"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-09-29T10:00:00.000000Z"
+                    }
+                },
+                "type": "object"
+            },
+            "BorrowingResource": {
+                "title": "Borrowing Resource",
+                "description": "Borrowing transaction model",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "user_id": {
+                        "type": "integer",
+                        "example": 1,
+                        "nullable": true
+                    },
+                    "borrower_name": {
+                        "type": "string",
+                        "example": "Siswa Perpustakaan"
+                    },
+                    "borrower_phone": {
+                        "type": "string",
+                        "example": "081234567890",
+                        "nullable": true
+                    },
+                    "borrower_identity_number": {
+                        "description": "Nomor identitas peminjam (NIS/NIP/KTP)",
+                        "type": "string",
+                        "example": "20241001",
+                        "nullable": true
+                    },
+                    "borrower_type": {
+                        "type": "string",
+                        "example": "student",
+                        "enum": [
+                            "student",
+                            "teacher",
+                            "staff",
+                            "guest"
+                        ]
+                    },
+                    "user": {
+                        "$ref": "#/components/schemas/UserResource"
+                    },
+                    "status": {
+                        "type": "string",
+                        "example": "PENDING",
+                        "enum": [
+                            "PENDING",
+                            "APPROVED",
+                            "REJECTED",
+                            "BORROWED",
+                            "RETURNED"
+                        ]
+                    },
+                    "borrowed_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-09-29T10:00:00.000000Z",
+                        "nullable": true
+                    },
+                    "due_date": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-10-02T10:00:00.000000Z",
+                        "nullable": true
+                    },
+                    "returned_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": null,
+                        "nullable": true
+                    },
+                    "is_overdue": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "notes": {
+                        "type": "string",
+                        "example": "Untuk keperluan belajar",
+                        "nullable": true
+                    },
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/BorrowingItemResource"
+                        }
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-09-29T10:00:00.000000Z"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-09-29T10:00:00.000000Z"
+                    }
+                },
+                "type": "object"
+            }
+        },
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "description": "Masukkan Sanctum Token",
+                "bearerFormat": "Bearer Token",
+                "scheme": "bearer"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Authentication",
+            "description": "Endpoint autentikasi (login, logout, me)"
+        },
+        {
+            "name": "Books",
+            "description": "Katalog buku untuk siswa"
+        },
+        {
+            "name": "Borrowings",
+            "description": "Pengajuan dan riwayat peminjaman siswa"
+        },
+        {
+            "name": "Staff - Dashboard",
+            "description": "Statistik dashboard petugas"
+        },
+        {
+            "name": "Staff - Books",
+            "description": "Manajemen inventaris buku oleh petugas"
+        },
+        {
+            "name": "Staff - Borrowings",
+            "description": "Manajemen dan konfirmasi alur peminjaman oleh petugas"
+        }
+    ]
+}
