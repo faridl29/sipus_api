@@ -30,14 +30,19 @@ class Borrowing extends Model
     public const MAX_BORROWING_DAYS = 3;
 
     /**
-     * Get maximum borrowing duration in days based on user role.
+     * Get maximum borrowing duration in days based on borrower type or user.
      */
-    public static function getMaxDaysForUser(?User $user): int
+    public static function getMaxDaysForBorrower(?string $borrowerType = null): int
     {
-        if ($user?->isTeacher()) {
+        if ($borrowerType === 'teacher') {
             return self::MAX_BORROWING_DAYS_TEACHER;
         }
 
+        return self::MAX_BORROWING_DAYS_STUDENT;
+    }
+
+    public static function getMaxDaysForUser(?User $user = null): int
+    {
         return self::MAX_BORROWING_DAYS_STUDENT;
     }
 

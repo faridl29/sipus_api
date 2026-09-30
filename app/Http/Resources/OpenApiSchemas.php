@@ -11,8 +11,8 @@ namespace App\Http\Resources;
  *     @OA\Property(property="id", type="integer", example=1),
  *     @OA\Property(property="name", type="string", example="Budi Santoso"),
  *     @OA\Property(property="email", type="string", example="student@example.com"),
- *     @OA\Property(property="identity_number", type="string", nullable=true, example="20241001", description="Nomor Induk Siswa (NIS) / NIP Guru / ID Staff"),
- *     @OA\Property(property="role", type="string", enum={"student","teacher","staff"}, example="student"),
+ *     @OA\Property(property="identity_number", type="string", nullable=true, example="20241001", description="Nomor Induk Siswa (NIS) / ID Staff"),
+ *     @OA\Property(property="role", type="string", enum={"student","staff"}, example="student"),
  *     @OA\Property(property="created_at", type="string", format="date-time", example="2026-09-29T10:00:00.000000Z"),
  *     @OA\Property(property="updated_at", type="string", format="date-time", example="2026-09-29T10:00:00.000000Z")
  * )

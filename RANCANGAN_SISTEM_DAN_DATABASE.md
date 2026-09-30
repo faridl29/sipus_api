@@ -21,9 +21,9 @@ erDiagram
         bigint id PK
         string name
         string email UK
-        string identity_number UK "NIS / NIP / ID Petugas"
+        string identity_number UK "NIS / ID Petugas"
         string password
-        enum role "student, teacher, staff"
+        enum role "student, staff"
         timestamp email_verified_at
         timestamp created_at
         timestamp updated_at
@@ -76,16 +76,16 @@ erDiagram
 ### 1.2. Kamus Data & Struktur Tabel Fisik
 
 #### A. Tabel: `users`
-Menyimpan data identitas akun anggota terdaftar perpustakaan (Siswa, Guru, dan Petugas).
+Menyimpan data identitas akun anggota terdaftar perpustakaan (Siswa dan Petugas).
 
 | Nama Kolom | Tipe Data | Constraint | Keterangan |
 |---|---|---|---|
 | `id` | `BIGINT UNSIGNED` | Primary Key, Auto Increment | Identifikasi unik pengguna |
 | `name` | `VARCHAR(255)` | Not Null | Nama lengkap pengguna |
 | `email` | `VARCHAR(255)` | Not Null, Unique | Alamat surel aktif untuk autentikasi login |
-| `identity_number` | `VARCHAR(255)` | Nullable, Unique | **NIS/NISN** (Siswa), **NIP/NUPTK** (Guru), **ID** (Staff) |
+| `identity_number` | `VARCHAR(255)` | Nullable, Unique | **NIS/NISN** (Siswa), **ID** (Staff) |
 | `password` | `VARCHAR(255)` | Not Null | Kata sandi terenkripsi (*hashed*) |
-| `role` | `VARCHAR(50)` | Not Null, Default: `'student'` | Peran pengguna (`student`, `teacher`, `staff`) |
+| `role` | `VARCHAR(50)` | Not Null, Default: `'student'` | Peran pengguna (`student`, `staff`). Guru dilayani via walk-in |
 | `email_verified_at`| `TIMESTAMP` | Nullable | Waktu verifikasi surel |
 | `remember_token` | `VARCHAR(100)` | Nullable | Token sesi autentikasi |
 | `created_at` | `TIMESTAMP` | Nullable | Waktu pembuatan data |
@@ -157,7 +157,7 @@ Sistem mengontrol siklus hidup (*lifecycle*) peminjaman melalui pembatasan trans
 
 ```mermaid
 stateDiagram-v2
-    [*] --> PENDING : [Alur 1] Booking Daring Siswa / Guru (Stok belum berkurang)
+    [*] --> PENDING : [Alur 1] Booking Daring Siswa (Stok belum berkurang)
     [*] --> BORROWED : [Alur 2] Peminjaman Langsung di Tempat (Stok langsung berkurang)
 
     PENDING --> APPROVED : Petugas Setujui Booking (Buku disiapkan di meja)
@@ -173,14 +173,14 @@ stateDiagram-v2
 
 ---
 
-### 2.2. Sequence Diagram Alur 1: Peminjaman Daring (Online Booking)
+### 2.2. Sequence Diagram Alur 1: Peminjaman Daring Siswa (Online Booking)
 
-Alur ini digunakan oleh siswa atau guru yang ingin memesan buku terlebih dahulu melalui sistem sebelum mengambilnya secara fisik.
+Alur ini digunakan oleh siswa yang ingin memesan buku terlebih dahulu melalui sistem sebelum mengambilnya secara fisik di perpustakaan.
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Member as Siswa / Guru
+    actor Member as Siswa
     participant App as Antarmuka Web / Mobile
     participant API as SIPUS API (Backend)
     participant DB as Database MySQL
@@ -254,13 +254,15 @@ sequenceDiagram
 
 ## 3. Logika Bisnis Khusus (Business Rules)
 
-### 3.1. Diferensiasi Durasi Batas Pinjam (*Due Date*)
-Sistem menerapkan batas waktu pengembalian buku yang berbeda sesuai peran peminjam:
+### 3.1. Kebijakan Sirkulasi & Diferensiasi Durasi Batas Pinjam (*Due Date*)
+Berdasarkan observasi operasional di **SMKS TI Annisa 2**, dewan guru telah difasilitasi buku paket pegangan guru langsung dari sekolah sehingga tidak memerlukan akun pengguna tersendiri untuk booking buku di sistem. Guru tetap dapat memeriksa ketersediaan buku lewat **Katalog Publik (OPAC)** tanpa login. 
+
+Apabila guru membutuhkan buku pengayaan/referensi tambahan, transaksi dilayani secara langsung (**Walk-in Service**) oleh petugas perpustakaan:
 - **Siswa & Tamu Umum**: Maksimal **3 hari** terhitung sejak tanggal buku diserahkan fisik (`Borrowing::MAX_BORROWING_DAYS_STUDENT = 3`).
-- **Guru**: Maksimal **7 hari** guna mengakomodasi kebutuhan penelaahan bahan ajar kurikulum (`Borrowing::MAX_BORROWING_DAYS_TEACHER = 7`).
+- **Guru (Walk-in)**: Maksimal **7 hari** guna mengakomodasi penelaahan bahan ajar kurikulum (`Borrowing::MAX_BORROWING_DAYS_TEACHER = 7`).
 
 Formula penentuan tanggal jatuh tempo:
-$$\text{Due Date} = \text{Borrowed At} + \begin{cases} 3 \text{ hari}, & \text{jika Peminjam adalah Siswa atau Tamu} \\ 7 \text{ hari}, & \text{jika Peminjam adalah Guru} \end{cases}$$
+$$\text{Due Date} = \text{Borrowed At} + \begin{cases} 3 \text{ hari}, & \text{jika Peminjam adalah Siswa atau Tamu} \\ 7 \text{ hari}, & \text{jika Peminjam adalah Guru (Walk-in)} \end{cases}$$
 
 ### 3.2. Deteksi Keterlambatan Otomatis (*Overdue Flag*)
 Sistem tidak memerlukan proses *cron job* berat untuk menandai keterlambatan. Keterlambatan dihitung secara dinamis (*computed attribute*) saat data diserialisasi:

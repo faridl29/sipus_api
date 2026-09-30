@@ -15,7 +15,7 @@ class StoreBorrowingRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()?->isMember() ?? false;
+        return $this->user()?->isStudent() ?? false;
     }
 
     /**
@@ -25,8 +25,7 @@ class StoreBorrowingRequest extends FormRequest
      */
     public function rules(): array
     {
-        $maxDays = Borrowing::getMaxDaysForUser($this->user());
-        $maxDueDate = now()->addDays($maxDays)->toDateString();
+        $maxDueDate = now()->addDays(Borrowing::MAX_BORROWING_DAYS_STUDENT)->toDateString();
 
         return [
             'items' => ['required', 'array', 'min:1'],
@@ -49,7 +48,7 @@ class StoreBorrowingRequest extends FormRequest
      */
     public function messages(): array
     {
-        $maxDays = Borrowing::getMaxDaysForUser($this->user());
+        $maxDays = Borrowing::MAX_BORROWING_DAYS_STUDENT;
 
         return [
             'due_date.before_or_equal' => "Batas maksimal pengembalian buku adalah {$maxDays} hari dari tanggal pengajuan.",

@@ -59,7 +59,7 @@ class BorrowingService
     ): Borrowing {
         return DB::transaction(function () use ($user, $itemsData, $dueDate, $borrowerName, $borrowerPhone, $borrowerIdentityNumber, $borrowerType, $notes) {
             $borrowedAt = now();
-            $maxDays = Borrowing::getMaxDaysForUser($user);
+            $maxDays = Borrowing::getMaxDaysForBorrower($borrowerType ?? $user?->role);
             $calculatedDueDate = $dueDate ? Carbon::parse($dueDate) : $borrowedAt->copy()->addDays($maxDays);
 
             $borrowing = Borrowing::create([
@@ -163,7 +163,7 @@ class BorrowingService
             }
 
             $borrowedAt = now();
-            $maxDays = Borrowing::getMaxDaysForUser($borrowing->user);
+            $maxDays = Borrowing::getMaxDaysForBorrower($borrowing->borrower_type ?? $borrowing->user?->role);
             $dueDate = $borrowing->due_date ?? $borrowedAt->copy()->addDays($maxDays);
 
             $borrowing->update([

@@ -28,7 +28,7 @@ class BorrowingPolicy
      */
     public function create(User $user): bool
     {
-        return $user->isMember();
+        return $user->isStudent();
     }
 
     /**

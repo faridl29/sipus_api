@@ -16,13 +16,10 @@ class User extends Authenticatable
 
     public const ROLE_STUDENT = 'student';
 
-    public const ROLE_TEACHER = 'teacher';
-
     public const ROLE_STAFF = 'staff';
 
     public const ROLES = [
         self::ROLE_STUDENT,
-        self::ROLE_TEACHER,
         self::ROLE_STAFF,
     ];
 
@@ -72,14 +69,9 @@ class User extends Authenticatable
         return $this->role === self::ROLE_STUDENT;
     }
 
-    public function isTeacher(): bool
-    {
-        return $this->role === self::ROLE_TEACHER;
-    }
-
     public function isMember(): bool
     {
-        return in_array($this->role, [self::ROLE_STUDENT, self::ROLE_TEACHER], true);
+        return $this->role === self::ROLE_STUDENT;
     }
 
     public function borrowings(): HasMany

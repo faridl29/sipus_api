@@ -376,47 +376,33 @@ class BorrowingFlowTest extends TestCase
             ->assertJsonPath('data.is_overdue', true);
     }
 
-    public function test_guru_dapat_mengajukan_booking_peminjaman_secara_mandiri(): void
+    public function test_guru_dapat_meminjam_langsung_walk_in_melalui_petugas_hingga_7_hari(): void
     {
-        $teacher = User::factory()->teacher()->create();
-
-        $response = $this->actingAs($teacher, 'sanctum')
-            ->postJson('/api/v1/borrowings', [
-                'items' => [
-                    ['book_id' => $this->book1->id, 'quantity' => 1],
-                ],
-                'notes' => 'Booking buku pegangan guru untuk mengajar',
-            ]);
-
-        $response->assertCreated()
-            ->assertJson([
-                'success' => true,
-                'message' => 'Borrowing request created successfully',
-            ])
-            ->assertJsonPath('data.status', Borrowing::STATUS_PENDING)
-            ->assertJsonPath('data.user_id', $teacher->id);
-    }
-
-    public function test_guru_dapat_memilih_due_date_hingga_7_hari_dan_ditolak_jika_lebih_7_hari(): void
-    {
-        $teacher = User::factory()->teacher()->create();
-
-        // 7 days later: allowed
+        // 7 days later: allowed for teacher walk-in
         $sevenDaysLater = now()->addDays(7)->toDateString();
-        $responseAllowed = $this->actingAs($teacher, 'sanctum')
-            ->postJson('/api/v1/borrowings', [
+        $responseAllowed = $this->actingAs($this->staff, 'sanctum')
+            ->postJson('/api/v1/staff/borrowings/direct', [
+                'borrower_name' => 'Ibu Guru Sejarah',
+                'borrower_identity_number' => '198501012010011001',
+                'borrower_type' => 'teacher',
                 'due_date' => $sevenDaysLater,
                 'items' => [
                     ['book_id' => $this->book1->id, 'quantity' => 1],
                 ],
+                'notes' => 'Peminjaman buku pengayaan oleh guru',
             ]);
 
-        $responseAllowed->assertCreated();
+        $responseAllowed->assertCreated()
+            ->assertJsonPath('data.borrower_name', 'Ibu Guru Sejarah')
+            ->assertJsonPath('data.borrower_type', 'teacher')
+            ->assertJsonPath('data.status', Borrowing::STATUS_BORROWED);
 
-        // 8 days later: rejected
+        // 8 days later: rejected because max 7 days for teacher
         $eightDaysLater = now()->addDays(8)->toDateString();
-        $responseRejected = $this->actingAs($teacher, 'sanctum')
-            ->postJson('/api/v1/borrowings', [
+        $responseRejected = $this->actingAs($this->staff, 'sanctum')
+            ->postJson('/api/v1/staff/borrowings/direct', [
+                'borrower_name' => 'Ibu Guru Sejarah',
+                'borrower_type' => 'teacher',
                 'due_date' => $eightDaysLater,
                 'items' => [
                     ['book_id' => $this->book1->id, 'quantity' => 1],
@@ -427,17 +413,16 @@ class BorrowingFlowTest extends TestCase
             ->assertJsonValidationErrors(['due_date']);
     }
 
-    public function test_guru_dapat_melihat_riwayat_peminjaman_miliknya_sendiri(): void
+    public function test_staff_tidak_bisa_membuat_pengajuan_peminjaman_online_siswa(): void
     {
-        $teacher = User::factory()->teacher()->create();
-        $borrowing = Borrowing::factory()->create(['user_id' => $teacher->id]);
+        $response = $this->actingAs($this->staff, 'sanctum')
+            ->postJson('/api/v1/borrowings', [
+                'items' => [
+                    ['book_id' => $this->book1->id, 'quantity' => 1],
+                ],
+            ]);
 
-        $response = $this->actingAs($teacher, 'sanctum')
-            ->getJson('/api/v1/borrowings/me');
-
-        $response->assertOk()
-            ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.id', $borrowing->id);
+        $response->assertForbidden();
     }
 
     public function test_detail_peminjaman_menampilkan_nomor_identitas_peminjam_dan_guest(): void

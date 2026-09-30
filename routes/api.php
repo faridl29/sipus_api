@@ -23,14 +23,14 @@ Route::prefix('v1')->group(function () {
     Route::get('books', [BookController::class, 'index']);
     Route::get('books/{id}', [BookController::class, 'show']);
 
-    // Authenticated Member Borrowing Routes (Student & Teacher)
+    // Authenticated Student Borrowing Routes
     Route::middleware('auth:sanctum')->group(function () {
-        Route::middleware('role:student,teacher')->group(function () {
+        Route::middleware('role:student')->group(function () {
             Route::post('borrowings', [BorrowingController::class, 'store']);
             Route::get('borrowings/me', [BorrowingController::class, 'myBorrowings']);
         });
 
-        // Detail can be viewed by borrower owner (student/teacher) or staff
+        // Detail can be viewed by borrower owner (student) or staff
         Route::get('borrowings/{id}', [BorrowingController::class, 'show']);
     });
 

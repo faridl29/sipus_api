@@ -72,12 +72,14 @@ Aplikasi akan aktif di `http://127.0.0.1:8000`.
 
 Setelah menjalankan seeder, gunakan kredensial berikut untuk login:
 
-| Role | Nomor Identitas (NIS/NIP/ID) | Email | Password | Keterangan |
+| Role | Nomor Identitas (NIS/ID) | Email | Password | Keterangan |
 |---|---|---|---|---|
-| **Staff (Petugas)** | `STF-001` | `staff@example.com` | `password` | Akses penuh dashboard, buku, dan transaksi |
-| **Teacher (Guru)** | `198501012010011001` | `teacher@example.com` | `password` | Booking daring (durasi s/d 7 hari), riwayat saya |
+| **Staff (Petugas)** | `STF-001` | `staff@example.com` | `password` | Akses penuh dashboard, buku, sirkulasi, dan walk-in |
 | **Student (Siswa)** | `202410001` | `student@example.com` | `password` | Booking daring (durasi s/d 3 hari), riwayat saya |
 | **Student 2 (Siswa)** | `202410002` | `student2@example.com` | `password` | Akun siswa kedua untuk uji coba isolasi data |
+
+> [!NOTE]
+> **Kebijakan Guru di SMKS TI Annisa 2**: Guru tidak memerlukan akun login mandiri karena telah difasilitasi buku paket pegangan guru dari sekolah. Guru tetap dapat mengecek ketersediaan buku melalui **Katalog Publik (OPAC)** tanpa login. Apabila guru ingin meminjam buku referensi tambahan, dilayani melalui metode **Walk-in di Meja Sirkulasi** oleh Petugas.
 
 > [!WARNING]
 > Kredensial di atas hanya untuk keperluan pengembangan (*development*) dan pengujian. Jangan gunakan kredensial ini di lingkungan produksi!
@@ -87,12 +89,12 @@ Setelah menjalankan seeder, gunakan kredensial berikut untuk login:
 ## 4. Alur Bisnis Peminjaman & Manajemen Stok
 
 Sistem mendukung **2 metode peminjaman**:
-1. **Peminjaman Daring (Booking / Reservasi via App Siswa & Guru)**: Siswa atau Guru membuat pengajuan terlebih dahulu (`PENDING`), disetujui petugas (`APPROVED`), lalu saat buku fisik diserahkan status diubah ke `BORROWED`.
-2. **Peminjaman Langsung di Tempat (Walk-in oleh Petugas)**: Siswa, Guru, maupun Tamu umum datang membawa buku ke meja sirkulasi, petugas mencatatkan peminjaman langsung (`POST /api/v1/staff/borrowings/direct`) sehingga status langsung menjadi `BORROWED` dan stok langsung berkurang saat itu juga.
+1. **Peminjaman Daring (Booking / Reservasi via App Siswa)**: Siswa membuat pengajuan terlebih dahulu (`PENDING`), disetujui petugas (`APPROVED`), lalu saat buku fisik diserahkan status diubah ke `BORROWED`.
+2. **Peminjaman Langsung di Tempat (Walk-in oleh Petugas)**: Guru, Siswa, maupun Tamu umum datang membawa buku ke meja sirkulasi, petugas mencatatkan peminjaman langsung (`POST /api/v1/staff/borrowings/direct`) sehingga status langsung menjadi `BORROWED` dan stok langsung berkurang saat itu juga.
 
 ### State Machine Status
 ```text
-[Alur 1: Pengajuan Online]
+[Alur 1: Pengajuan Online Siswa]
 PENDING ──► REJECTED (Ditolak petugas)
    │
    ▼
@@ -104,15 +106,15 @@ BORROWED (Petugas serahkan buku, STOK BERKURANG, DUE DATE DIHITUNG)
    ▼
 RETURNED (Buku dikembalikan, STOK BERTAMBAH KEMBALI)
 
-[Alur 2: Datang Langsung / Walk-in]
+[Alur 2: Datang Langsung / Walk-in Guru, Siswa, Tamu]
 Petugas Input Langsung ──► BORROWED (STOK BERKURANG, DUE DATE DIHITUNG) ──► RETURNED
 ```
 
 ### Aturan Batas Maksimal Pengembalian:
-* **Siswa**: Batas waktu maksimal pengembalian **3 hari** terhitung sejak buku dipinjam (`due_date = borrowed_at + 3 hari`).
-* **Guru**: Batas waktu maksimal pengembalian **7 hari** terhitung sejak buku dipinjam (`due_date = borrowed_at + 7 hari`) untuk menunjang modul ajar.
+* **Siswa & Tamu**: Batas waktu maksimal pengembalian **3 hari** terhitung sejak buku dipinjam (`due_date = borrowed_at + 3 hari`).
+* **Guru (Walk-in)**: Batas waktu maksimal pengembalian hingga **7 hari** terhitung sejak buku dipinjam (`due_date = borrowed_at + 7 hari`) untuk menunjang penyusunan modul ajar.
 * Jika peminjaman melewati batas waktu (`now() > due_date`), sistem secara otomatis menandai transaksi dengan atribut boolean `is_overdue = true`.
-* Validasi input menolak setiap penetapan tanggal pengembalian yang melebihi batas peran tersebut (**HTTP 422 Unprocessable Entity**).
+* Validasi input menolak setiap penetapan tanggal pengembalian yang melebihi batas tersebut (**HTTP 422 Unprocessable Entity**).
 
 ### Integritas Stok & Keamanan:
 * Operasi pengurangan stok pada tahap `BORROWED` dan pengembalian pada `RETURNED` dibungkus dalam transaksi database (`DB::transaction`).

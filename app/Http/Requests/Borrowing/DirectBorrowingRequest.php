@@ -26,9 +26,8 @@ class DirectBorrowingRequest extends FormRequest
      */
     public function rules(): array
     {
-        $userId = $this->input('user_id');
-        $user = $userId ? User::find($userId) : null;
-        $maxDays = Borrowing::getMaxDaysForUser($user);
+        $borrowerType = $this->input('borrower_type');
+        $maxDays = Borrowing::getMaxDaysForBorrower($borrowerType);
         $maxDueDate = now()->addDays($maxDays)->toDateString();
 
         return [
@@ -57,9 +56,8 @@ class DirectBorrowingRequest extends FormRequest
      */
     public function messages(): array
     {
-        $userId = $this->input('user_id');
-        $user = $userId ? User::find($userId) : null;
-        $maxDays = Borrowing::getMaxDaysForUser($user);
+        $borrowerType = $this->input('borrower_type');
+        $maxDays = Borrowing::getMaxDaysForBorrower($borrowerType);
 
         return [
             'borrower_name.required_without' => 'Nama peminjam wajib diisi jika peminjam tidak memiliki akun (tamu/umum).',

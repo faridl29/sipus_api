@@ -23,8 +23,8 @@ class BorrowingController extends Controller
      *     path="/api/v1/borrowings",
      *     operationId="storeBorrowing",
      *     tags={"Borrowings"},
-     *     summary="Ajukan peminjaman buku (Siswa & Guru / Member)",
-     *     description="Siswa atau Guru mengajukan peminjaman satu atau beberapa buku. Status awal otomatis PENDING. Maksimal durasi pinjam 3 hari untuk siswa dan 7 hari untuk guru.",
+     *     summary="Ajukan peminjaman buku (Siswa)",
+     *     description="Siswa mengajukan peminjaman satu atau beberapa buku. Status awal otomatis PENDING. Maksimal durasi pinjam 3 hari.",
      *     security={{"bearerAuth":{}}},
      *
      *     @OA\RequestBody(
@@ -33,7 +33,7 @@ class BorrowingController extends Controller
      *         @OA\JsonContent(
      *             required={"items"},
      *
-     *             @OA\Property(property="due_date", type="string", format="date", example="2026-10-02", description="Batas pengembalian (maks 3 hari siswa, 7 hari guru)"),
+     *             @OA\Property(property="due_date", type="string", format="date", example="2026-10-02", description="Batas pengembalian (maks 3 hari)"),
      *             @OA\Property(property="notes", type="string", example="Untuk keperluan belajar ujian"),
      *             @OA\Property(
      *                 property="items",

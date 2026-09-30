@@ -36,17 +36,6 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // Teacher user
-        User::updateOrCreate(
-            ['email' => 'teacher@example.com'],
-            [
-                'name' => 'Guru Perpustakaan',
-                'identity_number' => '198501012010011001',
-                'password' => Hash::make('password'),
-                'role' => User::ROLE_TEACHER,
-            ]
-        );
-
         // Second student for ownership testing
         User::updateOrCreate(
             ['email' => 'student2@example.com'],
