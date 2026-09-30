@@ -14,6 +14,9 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Purge legacy teacher accounts if any exist
+        User::where('role', 'teacher')->orWhere('email', 'teacher@example.com')->delete();
+
         // Staff user
         User::updateOrCreate(
             ['email' => 'staff@example.com'],
