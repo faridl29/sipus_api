@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
 
 class BookResource extends JsonResource
 {
@@ -14,6 +15,13 @@ class BookResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $coverUrl = null;
+        if ($this->cover) {
+            $coverUrl = filter_var($this->cover, FILTER_VALIDATE_URL)
+                ? $this->cover
+                : Storage::disk('public')->url($this->cover);
+        }
+
         return [
             'id' => $this->id,
             'title' => $this->title,
@@ -24,7 +32,7 @@ class BookResource extends JsonResource
             'stock' => $this->stock,
             'is_available' => $this->stock > 0,
             'description' => $this->description,
-            'cover' => $this->cover,
+            'cover' => $coverUrl,
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];

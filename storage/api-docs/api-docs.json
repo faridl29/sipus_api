@@ -29,14 +29,20 @@
                         "application/json": {
                             "schema": {
                                 "required": [
-                                    "email",
                                     "password"
                                 ],
                                 "properties": {
                                     "email": {
+                                        "description": "Alamat email atau Nomor Induk (NIS/NIP)",
                                         "type": "string",
-                                        "format": "email",
-                                        "example": "student@example.com"
+                                        "example": "student@example.com",
+                                        "nullable": true
+                                    },
+                                    "identity_number": {
+                                        "description": "Nomor Induk Siswa (NIS) atau ID Petugas",
+                                        "type": "string",
+                                        "example": "202410001",
+                                        "nullable": true
                                     },
                                     "password": {
                                         "type": "string",
@@ -1943,6 +1949,11 @@
                     "id": {
                         "type": "integer",
                         "example": 1
+                    },
+                    "transaction_code": {
+                        "description": "Kode transaksi peminjaman unik (TRX ID)",
+                        "type": "string",
+                        "example": "TRX-20261011-0001"
                     },
                     "user_id": {
                         "type": "integer",

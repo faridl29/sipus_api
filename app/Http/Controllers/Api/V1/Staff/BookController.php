@@ -9,6 +9,7 @@ use App\Http\Resources\BookResource;
 use App\Models\Book;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
 
 class BookController extends Controller
@@ -136,7 +137,13 @@ class BookController extends Controller
      */
     public function store(StoreBookRequest $request): JsonResponse
     {
-        $book = Book::create($request->validated());
+        $data = $request->validated();
+
+        if ($request->hasFile('cover')) {
+            $data['cover'] = $request->file('cover')->store('covers', 'public');
+        }
+
+        $book = Book::create($data);
 
         return $this->successResponse(
             new BookResource($book),
@@ -248,7 +255,16 @@ class BookController extends Controller
     public function update(UpdateBookRequest $request, int $id): JsonResponse
     {
         $book = Book::findOrFail($id);
-        $book->update($request->validated());
+        $data = $request->validated();
+
+        if ($request->hasFile('cover')) {
+            if ($book->cover && ! filter_var($book->cover, FILTER_VALIDATE_URL) && Storage::disk('public')->exists($book->cover)) {
+                Storage::disk('public')->delete($book->cover);
+            }
+            $data['cover'] = $request->file('cover')->store('covers', 'public');
+        }
+
+        $book->update($data);
 
         return $this->successResponse(new BookResource($book), 'Book updated successfully');
     }

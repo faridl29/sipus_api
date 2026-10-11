@@ -37,6 +37,48 @@ class AuthTest extends TestCase
         $this->assertEquals(User::ROLE_STUDENT, $response->json('data.user.role'));
     }
 
+    public function test_user_dapat_login_menggunakan_nomor_induk_nis(): void
+    {
+        $student = User::factory()->student()->create([
+            'identity_number' => '202410001',
+            'password' => bcrypt('password'),
+        ]);
+
+        $response = $this->postJson('/api/v1/auth/login', [
+            'identity_number' => '202410001',
+            'password' => 'password',
+        ]);
+
+        $response->assertOk()
+            ->assertJson([
+                'success' => true,
+                'message' => 'Login successful',
+            ]);
+
+        $this->assertEquals($student->id, $response->json('data.user.id'));
+    }
+
+    public function test_user_dapat_login_memasukkan_nomor_induk_pada_field_email(): void
+    {
+        $student = User::factory()->student()->create([
+            'identity_number' => '202410002',
+            'password' => bcrypt('password'),
+        ]);
+
+        $response = $this->postJson('/api/v1/auth/login', [
+            'email' => '202410002',
+            'password' => 'password',
+        ]);
+
+        $response->assertOk()
+            ->assertJson([
+                'success' => true,
+                'message' => 'Login successful',
+            ]);
+
+        $this->assertEquals($student->id, $response->json('data.user.id'));
+    }
+
     public function test_login_dengan_credential_salah_gagal(): void
     {
         User::factory()->student()->create([

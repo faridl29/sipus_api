@@ -16,6 +16,7 @@ class BorrowingResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'transaction_code' => $this->transaction_code,
             'user_id' => $this->user_id,
             'borrower_name' => $this->borrower_name ?? $this->user?->name,
             'borrower_phone' => $this->borrower_phone,

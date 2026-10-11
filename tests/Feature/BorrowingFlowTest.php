@@ -57,6 +57,8 @@ class BorrowingFlowTest extends TestCase
             ])
             ->assertJsonPath('data.status', Borrowing::STATUS_PENDING);
 
+        $this->assertMatchesRegularExpression('/^TRX-\d{8}-\d{4}$/', $response->json('data.transaction_code'));
+
         $this->assertDatabaseHas('borrowings', [
             'user_id' => $this->student->id,
             'status' => Borrowing::STATUS_PENDING,

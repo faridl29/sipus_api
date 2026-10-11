@@ -56,6 +56,7 @@ namespace App\Http\Resources;
  *     description="Borrowing transaction model",
  *
  *     @OA\Property(property="id", type="integer", example=1),
+ *     @OA\Property(property="transaction_code", type="string", example="TRX-20261011-0001", description="Kode transaksi peminjaman unik (TRX ID)"),
  *     @OA\Property(property="user_id", type="integer", nullable=true, example=1),
  *     @OA\Property(property="borrower_name", type="string", example="Siswa Perpustakaan"),
  *     @OA\Property(property="borrower_phone", type="string", nullable=true, example="081234567890"),

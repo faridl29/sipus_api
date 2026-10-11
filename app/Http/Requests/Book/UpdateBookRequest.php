@@ -4,6 +4,7 @@ namespace App\Http\Requests\Book;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateBookRequest extends FormRequest
 {
@@ -22,15 +23,20 @@ class UpdateBookRequest extends FormRequest
      */
     public function rules(): array
     {
+        $bookId = $this->route('id');
+        $coverRules = $this->hasFile('cover')
+            ? ['image', 'mimes:jpeg,png,jpg,webp', 'max:2048']
+            : ['string', 'max:255'];
+
         return [
             'title' => ['sometimes', 'required', 'string', 'max:255'],
             'author' => ['sometimes', 'required', 'string', 'max:255'],
             'publisher' => ['nullable', 'string', 'max:255'],
             'publication_year' => ['nullable', 'integer', 'min:1000', 'max:2100'],
-            'isbn' => ['nullable', 'string', 'max:50'],
+            'isbn' => ['nullable', 'string', 'max:50', Rule::unique('books', 'isbn')->ignore($bookId)->withoutTrashed()],
             'stock' => ['sometimes', 'required', 'integer', 'min:0'],
             'description' => ['nullable', 'string'],
-            'cover' => ['nullable', 'string', 'max:255'],
+            'cover' => ['sometimes', 'nullable', ...$coverRules],
         ];
     }
 }

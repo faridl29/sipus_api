@@ -23,20 +23,12 @@ class ValidationNegativeCasesTest extends TestCase
         $this->staff = User::factory()->staff()->create();
     }
 
-    public function test_login_validasi_gagal_jika_field_kosong_atau_format_email_salah(): void
+    public function test_login_validasi_gagal_jika_field_kosong(): void
     {
-        // 1. Empty body
-        $res1 = $this->postJson('/api/v1/auth/login', []);
-        $res1->assertStatus(422)
+        // Empty body
+        $response = $this->postJson('/api/v1/auth/login', []);
+        $response->assertStatus(422)
             ->assertJsonValidationErrors(['email', 'password']);
-
-        // 2. Invalid email format
-        $res2 = $this->postJson('/api/v1/auth/login', [
-            'email' => 'bukan-email',
-            'password' => 'password123',
-        ]);
-        $res2->assertStatus(422)
-            ->assertJsonValidationErrors(['email']);
     }
 
     public function test_staff_tambah_buku_gagal_jika_data_tidak_lengkap_atau_stok_negatif(): void

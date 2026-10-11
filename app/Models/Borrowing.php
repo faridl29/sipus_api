@@ -56,12 +56,49 @@ class Borrowing extends Model
         self::STATUS_RETURNED,
     ];
 
+    protected static function booted(): void
+    {
+        static::creating(function (Borrowing $borrowing) {
+            if (empty($borrowing->transaction_code)) {
+                $borrowing->transaction_code = self::generateTransactionCode();
+            }
+        });
+    }
+
+    /**
+     * Generate unique sequential transaction code (TRX ID).
+     * Example: TRX-20261011-0001
+     */
+    public static function generateTransactionCode(): string
+    {
+        $date = now()->format('Ymd');
+        $prefix = "TRX-{$date}-";
+
+        $latest = self::where('transaction_code', 'like', "{$prefix}%")
+            ->latest('id')
+            ->first();
+
+        $sequence = 1;
+        if ($latest && preg_match('/TRX-\d+-(\d+)/', $latest->transaction_code, $matches)) {
+            $sequence = ((int) $matches[1]) + 1;
+        }
+
+        $code = sprintf('TRX-%s-%04d', $date, $sequence);
+        while (self::where('transaction_code', $code)->exists()) {
+            $sequence++;
+            $code = sprintf('TRX-%s-%04d', $date, $sequence);
+        }
+
+        return $code;
+    }
+
     /**
      * The attributes that are mass assignable.
      *
      * @var list<string>
      */
     protected $fillable = [
+        'transaction_code',
         'user_id',
         'borrower_name',
         'borrower_phone',
