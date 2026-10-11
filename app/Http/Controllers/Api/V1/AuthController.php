@@ -28,8 +28,7 @@ class AuthController extends Controller
      *             required={"identity_number","password"},
      *
      *             @OA\Property(property="identity_number", type="string", example="202410001", description="Nomor Induk Siswa (NIS) atau ID Petugas"),
-     *             @OA\Property(property="password", type="string", format="password", example="password"),
-     *             @OA\Property(property="email", type="string", nullable=true, example="student@example.com", description="Opsional: alamat email jika ada")
+     *             @OA\Property(property="password", type="string", format="password", example="password")
      *         )
      *     ),
      *
@@ -76,12 +75,7 @@ class AuthController extends Controller
      */
     public function login(LoginRequest $request): JsonResponse
     {
-        $identifier = $request->input('identity_number') ?? $request->input('email');
-
-        $user = User::where(function ($query) use ($identifier) {
-            $query->where('identity_number', $identifier)
-                ->orWhere('email', $identifier);
-        })->first();
+        $user = User::where('identity_number', $request->input('identity_number'))->first();
 
         if (! $user || ! Hash::check($request->input('password'), $user->password)) {
             return $this->errorResponse('Invalid credentials.', Response::HTTP_UNAUTHORIZED);

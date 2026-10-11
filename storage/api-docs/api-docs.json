@@ -42,12 +42,6 @@
                                         "type": "string",
                                         "format": "password",
                                         "example": "password"
-                                    },
-                                    "email": {
-                                        "description": "Opsional: alamat email jika ada",
-                                        "type": "string",
-                                        "example": "student@example.com",
-                                        "nullable": true
                                     }
                                 },
                                 "type": "object"
