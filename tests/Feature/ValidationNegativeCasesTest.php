@@ -28,7 +28,7 @@ class ValidationNegativeCasesTest extends TestCase
         // Empty body
         $response = $this->postJson('/api/v1/auth/login', []);
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['email', 'password']);
+            ->assertJsonValidationErrors(['identity_number', 'password']);
     }
 
     public function test_staff_tambah_buku_gagal_jika_data_tidak_lengkap_atau_stok_negatif(): void

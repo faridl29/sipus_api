@@ -21,7 +21,7 @@
                     "Authentication"
                 ],
                 "summary": "Login user (Student / Staff)",
-                "description": "Autentikasi user dengan email dan password. Menghasilkan Bearer token Sanctum.",
+                "description": "Autentikasi user dengan Nomor Induk (NIS / ID Petugas) dan password. Menghasilkan Bearer token Sanctum.",
                 "operationId": "login",
                 "requestBody": {
                     "required": true,
@@ -29,25 +29,25 @@
                         "application/json": {
                             "schema": {
                                 "required": [
+                                    "identity_number",
                                     "password"
                                 ],
                                 "properties": {
-                                    "email": {
-                                        "description": "Alamat email atau Nomor Induk (NIS/NIP)",
-                                        "type": "string",
-                                        "example": "student@example.com",
-                                        "nullable": true
-                                    },
                                     "identity_number": {
                                         "description": "Nomor Induk Siswa (NIS) atau ID Petugas",
                                         "type": "string",
-                                        "example": "202410001",
-                                        "nullable": true
+                                        "example": "202410001"
                                     },
                                     "password": {
                                         "type": "string",
                                         "format": "password",
                                         "example": "password"
+                                    },
+                                    "email": {
+                                        "description": "Opsional: alamat email jika ada",
+                                        "type": "string",
+                                        "example": "student@example.com",
+                                        "nullable": true
                                     }
                                 },
                                 "type": "object"

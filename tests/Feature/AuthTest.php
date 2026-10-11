@@ -79,6 +79,29 @@ class AuthTest extends TestCase
         $this->assertEquals($student->id, $response->json('data.user.id'));
     }
 
+    public function test_student_tanpa_email_tetap_dapat_login_dengan_nomor_induk(): void
+    {
+        $student = User::factory()->student()->create([
+            'email' => null,
+            'identity_number' => '202410099',
+            'password' => bcrypt('password'),
+        ]);
+
+        $response = $this->postJson('/api/v1/auth/login', [
+            'identity_number' => '202410099',
+            'password' => 'password',
+        ]);
+
+        $response->assertOk()
+            ->assertJson([
+                'success' => true,
+                'message' => 'Login successful',
+            ]);
+
+        $this->assertEquals($student->id, $response->json('data.user.id'));
+        $this->assertNull($response->json('data.user.email'));
+    }
+
     public function test_login_dengan_credential_salah_gagal(): void
     {
         User::factory()->student()->create([

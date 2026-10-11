@@ -19,17 +19,17 @@ class AuthController extends Controller
      *     operationId="login",
      *     tags={"Authentication"},
      *     summary="Login user (Student / Staff)",
-     *     description="Autentikasi user dengan email dan password. Menghasilkan Bearer token Sanctum.",
+     *     description="Autentikasi user dengan Nomor Induk (NIS / ID Petugas) dan password. Menghasilkan Bearer token Sanctum.",
      *
      *     @OA\RequestBody(
      *         required=true,
      *
      *         @OA\JsonContent(
-     *             required={"password"},
+     *             required={"identity_number","password"},
      *
-     *             @OA\Property(property="email", type="string", nullable=true, example="student@example.com", description="Alamat email atau Nomor Induk (NIS/NIP)"),
-     *             @OA\Property(property="identity_number", type="string", nullable=true, example="202410001", description="Nomor Induk Siswa (NIS) atau ID Petugas"),
-     *             @OA\Property(property="password", type="string", format="password", example="password")
+     *             @OA\Property(property="identity_number", type="string", example="202410001", description="Nomor Induk Siswa (NIS) atau ID Petugas"),
+     *             @OA\Property(property="password", type="string", format="password", example="password"),
+     *             @OA\Property(property="email", type="string", nullable=true, example="student@example.com", description="Opsional: alamat email jika ada")
      *         )
      *     ),
      *
