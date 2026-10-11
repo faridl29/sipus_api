@@ -23,7 +23,7 @@ erDiagram
         string email UK
         string identity_number UK "NIS / ID Petugas"
         string password
-        enum role "student, staff"
+        string role "student, staff"
         timestamp email_verified_at
         timestamp created_at
         timestamp updated_at
@@ -47,11 +47,11 @@ erDiagram
 
     BORROWINGS {
         bigint id PK
-        bigint user_id FK "Nullable (null jika tamu luar)"
+        bigint user_id FK "Nullable (null untuk guru walk-in atau tamu luar)"
         string borrower_name "Nama siswa/guru/tamu"
         string borrower_phone "Kontak peminjam"
         string borrower_identity_number "NIS / NIP / KTP tamu"
-        enum borrower_type "student, teacher, staff, guest"
+        string borrower_type "student, teacher, staff, guest"
         enum status "PENDING, APPROVED, REJECTED, BORROWED, RETURNED"
         timestamp borrowed_at "Tanggal penyerahan fisik buku"
         timestamp due_date "Batas waktu pengembalian buku"
@@ -85,7 +85,7 @@ Menyimpan data identitas akun anggota terdaftar perpustakaan (Siswa dan Petugas)
 | `email` | `VARCHAR(255)` | Not Null, Unique | Alamat surel aktif untuk autentikasi login |
 | `identity_number` | `VARCHAR(255)` | Nullable, Unique | **NIS/NISN** (Siswa), **ID** (Staff) |
 | `password` | `VARCHAR(255)` | Not Null | Kata sandi terenkripsi (*hashed*) |
-| `role` | `VARCHAR(50)` | Not Null, Default: `'student'` | Peran pengguna (`student`, `staff`). Guru dilayani via walk-in |
+| `role` | `VARCHAR(255)` | Not Null, Default: `'student'` | Peran pengguna (`student`, `staff`). Guru dilayani via walk-in |
 | `email_verified_at`| `TIMESTAMP` | Nullable | Waktu verifikasi surel |
 | `remember_token` | `VARCHAR(100)` | Nullable | Token sesi autentikasi |
 | `created_at` | `TIMESTAMP` | Nullable | Waktu pembuatan data |
@@ -108,7 +108,7 @@ Menyimpan katalog bahan pustaka dan ketersediaan stok fisik eksemplar buku.
 | `is_available` | `BOOLEAN` | Not Null, Default: `true` | Indikator ketersediaan buku |
 | `description` | `TEXT` | Nullable | Sinopsis atau deskripsi isi buku |
 | `cover` | `VARCHAR(255)` | Nullable | URL gambar sampul (*cover*) buku |
-| `deleted_at` | `TIMESTAMP` | Nullable | Penanda *Soft Delete* (agar riwayat transaksi tetap utuh) |
+| `deleted_at` | `TIMESTAMP` | Nullable | Penanda *Soft Delete* (menyembunyikan buku dari katalog aktif tanpa menghapus data fisik) |
 | `created_at` | `TIMESTAMP` | Nullable | Waktu pembuatan data |
 | `updated_at` | `TIMESTAMP` | Nullable | Waktu pembaruan data terakhir |
 
@@ -120,14 +120,14 @@ Menyimpan *header* transaksi sirkulasi peminjaman (baik daring maupun peminjaman
 | Nama Kolom | Tipe Data | Constraint | Keterangan |
 |---|---|---|---|
 | `id` | `BIGINT UNSIGNED` | Primary Key, Auto Increment | Identifikasi unik transaksi peminjaman |
-| `user_id` | `BIGINT UNSIGNED` | Nullable, FK ke `users.id` | Akun anggota terdaftar. Bernilai `NULL` untuk tamu/pengunjung luar |
+| `user_id` | `BIGINT UNSIGNED` | Nullable, FK ke `users.id` | Akun anggota terdaftar. Bernilai `NULL` jika peminjam tidak memiliki akun login (seperti guru yang meminjam walk-in atau tamu luar) |
 | `borrower_name` | `VARCHAR(255)` | Nullable | Nama peminjam (wajib jika `user_id` bernilai `NULL`) |
 | `borrower_phone` | `VARCHAR(50)` | Nullable | Nomor telepon / WhatsApp peminjam |
 | `borrower_identity_number` | `VARCHAR(50)` | Nullable | Nomor identitas peminjam (NIS / NIP / KTP tamu) |
-| `borrower_type` | `VARCHAR(50)` | Nullable | Klasifikasi peminjam (`student`, `teacher`, `staff`, `guest`) |
-| `status` | `VARCHAR(50)` | Not Null, Default: `'PENDING'` | Status transaksi: `PENDING`, `APPROVED`, `REJECTED`, `BORROWED`, `RETURNED` |
+| `borrower_type` | `VARCHAR(30)` | Not Null, Default: `'student'` | Nilai: `'student'`, `'teacher'`, `'staff'`, `'guest'` (Staff didukung untuk tenaga kependidikan) |
+| `status` | `ENUM` | Not Null, Default: `'PENDING'` | Nilai: `'PENDING'`, `'APPROVED'`, `'REJECTED'`, `'BORROWED'`, `'RETURNED'` |
 | `borrowed_at` | `TIMESTAMP` | Nullable | Waktu buku fisik diserahkan kepada peminjam |
-| `due_date` | `TIMESTAMP` | Nullable | Batas akhir pengembalian (maks 3 hari / 7 hari) |
+| `due_date` | `TIMESTAMP` | Nullable | Batas akhir pengembalian (maks 3 hari untuk siswa/tamu, 7 hari untuk guru/staff) |
 | `returned_at` | `TIMESTAMP` | Nullable | Waktu riil buku dikembalikan ke perpustakaan |
 | `notes` | `TEXT` | Nullable | Catatan keperluan pinjam atau alasan penolakan petugas |
 | `created_at` | `TIMESTAMP` | Nullable | Waktu pembuatan data |
@@ -257,12 +257,12 @@ sequenceDiagram
 ### 3.1. Kebijakan Sirkulasi & Diferensiasi Durasi Batas Pinjam (*Due Date*)
 Berdasarkan observasi operasional di **SMKS TI Annisa 2**, dewan guru telah difasilitasi buku paket pegangan guru langsung dari sekolah sehingga tidak memerlukan akun pengguna tersendiri untuk booking buku di sistem. Guru tetap dapat memeriksa ketersediaan buku lewat **Katalog Publik (OPAC)** tanpa login. 
 
-Apabila guru membutuhkan buku pengayaan/referensi tambahan, transaksi dilayani secara langsung (**Walk-in Service**) oleh petugas perpustakaan:
+Apabila guru atau staf sekolah/tenaga kependidikan membutuhkan buku pengayaan/referensi operasional, transaksi dilayani secara langsung (**Walk-in Service**) oleh petugas perpustakaan:
 - **Siswa & Tamu Umum**: Maksimal **3 hari** terhitung sejak tanggal buku diserahkan fisik (`Borrowing::MAX_BORROWING_DAYS_STUDENT = 3`).
-- **Guru (Walk-in)**: Maksimal **7 hari** guna mengakomodasi penelaahan bahan ajar kurikulum (`Borrowing::MAX_BORROWING_DAYS_TEACHER = 7`).
+- **Guru & Staff (Tenaga Kependidikan)**: Maksimal **7 hari** guna mengakomodasi penelaahan bahan ajar kurikulum maupun operasional dinas sekolah (`Borrowing::MAX_BORROWING_DAYS_TEACHER = 7`, `Borrowing::MAX_BORROWING_DAYS_STAFF = 7`).
 
 Formula penentuan tanggal jatuh tempo:
-$$\text{Due Date} = \text{Borrowed At} + \begin{cases} 3 \text{ hari}, & \text{jika Peminjam adalah Siswa atau Tamu} \\ 7 \text{ hari}, & \text{jika Peminjam adalah Guru (Walk-in)} \end{cases}$$
+$$\text{Due Date} = \text{Borrowed At} + \begin{cases} 3 \text{ hari}, & \text{jika Peminjam adalah Siswa atau Tamu} \\ 7 \text{ hari}, & \text{jika Peminjam adalah Guru atau Staff} \end{cases}$$
 
 ### 3.2. Deteksi Keterlambatan Otomatis (*Overdue Flag*)
 Sistem tidak memerlukan proses *cron job* berat untuk menandai keterlambatan. Keterlambatan dihitung secara dinamis (*computed attribute*) saat data diserialisasi:
@@ -279,4 +279,4 @@ Jika `is_overdue = true`, aplikasi frontend dapat langsung memberikan indikator 
 
 ### 3.3. Integritas Data & Concurrency Control
 1. **Pencegahan Race Condition**: Operasi pengurangan stok pada buku menggunakan `Book::lockForUpdate()` di dalam transaksi database (`DB::transaction`). Ini mencegah dua peminjam berbeda mendapatkan buku yang tersisa 1 eksemplar secara bersamaan.
-2. **Soft Deletes**: Tabel `books` menerapkan `deleted_at`. Buku yang telah dihapus oleh petugas tidak akan hilang secara fisik dari basis data, sehingga foreign key pada `borrowing_items` masa lalu tidak pernah berstatus *orphaned*.
+2. **Soft Deletes**: Tabel `books` menerapkan `deleted_at`. Ketika data buku dihapus dari katalog aktif oleh petugas, data tidak dihapus secara fisik (*hard delete*) dari basis data, melainkan hanya ditandai waktu penghapusannya. Hal ini menjaga kesinambungan historis data (*historical continuity*) agar laporan transaksi dan rekam jejak sirkulasi di masa lalu tetap dapat menampilkan informasi buku terkait tanpa kehilangan jejak audit perpustakaan.

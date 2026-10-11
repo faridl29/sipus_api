@@ -27,6 +27,8 @@ class Borrowing extends Model
 
     public const MAX_BORROWING_DAYS_TEACHER = 7;
 
+    public const MAX_BORROWING_DAYS_STAFF = 7;
+
     public const MAX_BORROWING_DAYS = 3;
 
     /**
@@ -34,7 +36,7 @@ class Borrowing extends Model
      */
     public static function getMaxDaysForBorrower(?string $borrowerType = null): int
     {
-        if ($borrowerType === 'teacher') {
+        if (in_array($borrowerType, ['teacher', 'staff'], true)) {
             return self::MAX_BORROWING_DAYS_TEACHER;
         }
 
