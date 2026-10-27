@@ -537,6 +537,15 @@
                 "operationId": "getMyBorrowings",
                 "parameters": [
                     {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Kata kunci pencarian (kode transaksi, judul buku)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
                         "name": "status",
                         "in": "query",
                         "description": "Filter berdasarkan status (PENDING, APPROVED, REJECTED, BORROWED, RETURNED)",
@@ -1126,6 +1135,15 @@
                 "operationId": "getStaffBorrowings",
                 "parameters": [
                     {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Pencarian kode transaksi, nama peminjam, nomor identitas (NIS/NIP), atau judul buku",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
                         "name": "status",
                         "in": "query",
                         "description": "Filter berdasarkan status (PENDING, APPROVED, REJECTED, BORROWED, RETURNED)",
@@ -1509,6 +1527,15 @@
                 "description": "Melihat seluruh histori transaksi peminjaman (biasanya RETURNED atau REJECTED, atau seluruh status) dengan pencarian dan pagination.",
                 "operationId": "getStaffBorrowingHistory",
                 "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Pencarian kode transaksi, nama peminjam, nomor identitas (NIS/NIP), atau judul buku",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     {
                         "name": "status",
                         "in": "query",

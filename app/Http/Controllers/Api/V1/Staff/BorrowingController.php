@@ -29,6 +29,15 @@ class BorrowingController extends Controller
      *     security={{"bearerAuth":{}}},
      *
      *     @OA\Parameter(
+     *         name="search",
+     *         in="query",
+     *         description="Pencarian kode transaksi, nama peminjam, nomor identitas (NIS/NIP), atau judul buku",
+     *         required=false,
+     *
+     *         @OA\Schema(type="string")
+     *     ),
+     *
+     *     @OA\Parameter(
      *         name="status",
      *         in="query",
      *         description="Filter berdasarkan status (PENDING, APPROVED, REJECTED, BORROWED, RETURNED)",
@@ -73,6 +82,10 @@ class BorrowingController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = Borrowing::with(['user', 'items.book']);
+
+        if ($request->filled('search')) {
+            $query->search($request->query('search'));
+        }
 
         if ($status = $request->query('status')) {
             $query->where('status', strtoupper($status));
@@ -318,6 +331,15 @@ class BorrowingController extends Controller
      *     security={{"bearerAuth":{}}},
      *
      *     @OA\Parameter(
+     *         name="search",
+     *         in="query",
+     *         description="Pencarian kode transaksi, nama peminjam, nomor identitas (NIS/NIP), atau judul buku",
+     *         required=false,
+     *
+     *         @OA\Schema(type="string")
+     *     ),
+     *
+     *     @OA\Parameter(
      *         name="status",
      *         in="query",
      *         description="Filter berdasarkan status tertentu",
@@ -362,6 +384,10 @@ class BorrowingController extends Controller
     public function history(Request $request): JsonResponse
     {
         $query = Borrowing::with(['user', 'items.book']);
+
+        if ($request->filled('search')) {
+            $query->search($request->query('search'));
+        }
 
         if ($status = $request->query('status')) {
             $query->where('status', strtoupper($status));

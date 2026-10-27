@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Database\Factories\BorrowingFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -147,5 +148,47 @@ class Borrowing extends Model
     public function items(): HasMany
     {
         return $this->hasMany(BorrowingItem::class);
+    }
+
+    /**
+     * Scope a query to search borrowings by transaction code, borrower name/identity, or book title.
+     *
+     * @param  Builder<Borrowing>  $query
+     * @return Builder<Borrowing>
+     */
+    public function scopeSearch(Builder $query, ?string $search): Builder
+    {
+        if ($search === null) {
+            return $query;
+        }
+
+        $search = trim($search);
+
+        if ($search === '') {
+            return $query;
+        }
+
+        $isSqlite = $query->getConnection()->getDriverName() === 'sqlite';
+        $escapeSql = $isSqlite ? " ESCAPE '\\'" : '';
+
+        $terms = array_filter(preg_split('/\s+/', $search) ?: []);
+
+        return $query->where(function (Builder $q) use ($terms, $escapeSql) {
+            foreach ($terms as $term) {
+                $escapedTerm = addcslashes($term, '%_\\');
+                $q->where(function (Builder $subQuery) use ($escapedTerm, $escapeSql) {
+                    $subQuery->whereRaw("transaction_code LIKE ?{$escapeSql}", ["%{$escapedTerm}%"])
+                        ->orWhereRaw("borrower_name LIKE ?{$escapeSql}", ["%{$escapedTerm}%"])
+                        ->orWhereRaw("borrower_identity_number LIKE ?{$escapeSql}", ["%{$escapedTerm}%"])
+                        ->orWhereHas('user', function (Builder $userQuery) use ($escapedTerm, $escapeSql) {
+                            $userQuery->whereRaw("name LIKE ?{$escapeSql}", ["%{$escapedTerm}%"])
+                                ->orWhereRaw("identity_number LIKE ?{$escapeSql}", ["%{$escapedTerm}%"]);
+                        })
+                        ->orWhereHas('items.book', function (Builder $bookQuery) use ($escapedTerm, $escapeSql) {
+                            $bookQuery->whereRaw("title LIKE ?{$escapeSql}", ["%{$escapedTerm}%"]);
+                        });
+                });
+            }
+        });
     }
 }

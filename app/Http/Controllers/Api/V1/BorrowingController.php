@@ -111,6 +111,15 @@ class BorrowingController extends Controller
      *     security={{"bearerAuth":{}}},
      *
      *     @OA\Parameter(
+     *         name="search",
+     *         in="query",
+     *         description="Kata kunci pencarian (kode transaksi, judul buku)",
+     *         required=false,
+     *
+     *         @OA\Schema(type="string")
+     *     ),
+     *
+     *     @OA\Parameter(
      *         name="status",
      *         in="query",
      *         description="Filter berdasarkan status (PENDING, APPROVED, REJECTED, BORROWED, RETURNED)",
@@ -155,6 +164,10 @@ class BorrowingController extends Controller
     public function myBorrowings(Request $request): JsonResponse
     {
         $query = $request->user()->borrowings()->with(['items.book']);
+
+        if ($request->filled('search')) {
+            $query->search($request->query('search'));
+        }
 
         if ($status = $request->query('status')) {
             $query->where('status', strtoupper($status));

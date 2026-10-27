@@ -80,17 +80,12 @@ class BookController extends Controller
     {
         $query = Book::query();
 
-        if ($search = $request->query('search')) {
-            $query->where(function ($q) use ($search) {
-                $q->where('title', 'like', "%{$search}%")
-                    ->orWhere('author', 'like', "%{$search}%")
-                    ->orWhere('publisher', 'like', "%{$search}%")
-                    ->orWhere('isbn', 'like', "%{$search}%");
-            });
+        if ($request->filled('search')) {
+            $query->search($request->query('search'));
         }
 
-        if ($request->boolean('available_only')) {
-            $query->where('stock', '>', 0);
+        if ($request->boolean('available_only') || $request->boolean('available')) {
+            $query->available();
         }
 
         $perPage = min(max((int) $request->query('per_page', 10), 1), 100);
