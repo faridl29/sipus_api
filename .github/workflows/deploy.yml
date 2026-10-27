@@ -21,8 +21,8 @@ jobs:
           REMOTE_HOST: ${{ secrets.VPS_HOST }}
           REMOTE_USER: ${{ secrets.VPS_USER }}
           TARGET: /var/www/sipus_api/
-          EXCLUDES: "/.git/, /.github/, /.env, /storage/, /vendor/, /node_modules/"
-          ARGS: "-rlgoDzc -i"
+          EXCLUDE: "/.git/, /.github/, /.env, /storage/, /vendor/, /node_modules/"
+          ARGS: "-rlzc -i"
 
       - name: Run Migrations & Cache on VPS
         uses: appleboy/ssh-action@v1.2.0
