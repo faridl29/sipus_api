@@ -14,6 +14,16 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Prepare Permissions on VPS
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            sudo chown -R $(whoami):www-data /var/www/sipus_api
+            sudo chmod -R 775 /var/www/sipus_api
+
       - name: Sync Files to VPS
         uses: easingthemes/ssh-deploy@v5.1.0
         with:
@@ -37,4 +47,6 @@ jobs:
             php artisan optimize:clear
             php artisan route:cache
             php artisan l5-swagger:generate
+            sudo chown -R www-data:www-data /var/www/sipus_api/storage /var/www/sipus_api/bootstrap/cache
+            sudo chmod -R 775 /var/www/sipus_api/storage /var/www/sipus_api/bootstrap/cache
             sudo systemctl reload php8.4-fpm
