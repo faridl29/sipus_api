@@ -405,7 +405,7 @@
                     "Borrowings"
                 ],
                 "summary": "Ajukan peminjaman buku (Siswa)",
-                "description": "Siswa mengajukan peminjaman satu atau beberapa buku. Status awal otomatis PENDING. Maksimal durasi pinjam 3 hari.",
+                "description": "Siswa mengajukan peminjaman buku (maksimal 2 buku). Status awal otomatis PENDING. Maksimal durasi pinjam 3 hari.",
                 "operationId": "storeBorrowing",
                 "requestBody": {
                     "required": true,
@@ -1613,7 +1613,7 @@
                     "Staff - Borrowings"
                 ],
                 "summary": "Peminjaman langsung di tempat (Walk-in / Tamu / Siswa / Guru)",
-                "description": "Petugas mencatat peminjaman langsung di tempat untuk siswa terdaftar, guru/staf, maupun tamu umum. Status langsung menjadi BORROWED, stok buku otomatis berkurang, dan batas waktu pengembalian maksimal 3 hari.",
+                "description": "Petugas mencatat peminjaman langsung di tempat untuk siswa terdaftar, guru/staf, maupun tamu umum (maksimal 2 buku). Status langsung menjadi BORROWED, stok buku otomatis berkurang, dan batas waktu pengembalian maksimal 3 hari.",
                 "operationId": "directBorrowingByStaff",
                 "requestBody": {
                     "required": true,

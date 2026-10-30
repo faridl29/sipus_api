@@ -32,6 +32,8 @@ class Borrowing extends Model
 
     public const MAX_BORROWING_DAYS = 3;
 
+    public const MAX_BOOKS_PER_BORROWER = 2;
+
     /**
      * Get maximum borrowing duration in days based on borrower type or user.
      */
@@ -47,6 +49,83 @@ class Borrowing extends Model
     public static function getMaxDaysForUser(?User $user = null): int
     {
         return self::MAX_BORROWING_DAYS_STUDENT;
+    }
+
+    /**
+     * Get the count of active books currently borrowed or requested by a user.
+     * Active statuses: PENDING, APPROVED, BORROWED.
+     */
+    public static function getActiveBooksCountForUser(int $userId): int
+    {
+        return (int) BorrowingItem::whereHas('borrowing', function (Builder $query) use ($userId) {
+            $query->where('user_id', $userId)
+                ->whereIn('status', [self::STATUS_PENDING, self::STATUS_APPROVED, self::STATUS_BORROWED]);
+        })->sum('quantity');
+    }
+
+    /**
+     * Check if a user has any overdue borrowings.
+     */
+    public static function hasOverdueBorrowingsForUser(int $userId): bool
+    {
+        return self::where('user_id', $userId)
+            ->where('status', self::STATUS_BORROWED)
+            ->whereNotNull('due_date')
+            ->where('due_date', '<', now())
+            ->exists();
+    }
+
+    /**
+     * Get the count of active books for a borrower (by user_id or borrower_identity_number).
+     */
+    public static function getActiveBooksCountForBorrower(?int $userId = null, ?string $identityNumber = null): int
+    {
+        if (! $userId && ! $identityNumber) {
+            return 0;
+        }
+
+        return (int) BorrowingItem::whereHas('borrowing', function (Builder $query) use ($userId, $identityNumber) {
+            $query->whereIn('status', [self::STATUS_PENDING, self::STATUS_APPROVED, self::STATUS_BORROWED])
+                ->where(function (Builder $subQuery) use ($userId, $identityNumber) {
+                    if ($userId) {
+                        $subQuery->where('user_id', $userId);
+                    }
+                    if ($identityNumber) {
+                        if ($userId) {
+                            $subQuery->orWhere('borrower_identity_number', $identityNumber);
+                        } else {
+                            $subQuery->where('borrower_identity_number', $identityNumber);
+                        }
+                    }
+                });
+        })->sum('quantity');
+    }
+
+    /**
+     * Check if a borrower has any overdue borrowings (by user_id or borrower_identity_number).
+     */
+    public static function hasOverdueBorrowingsForBorrower(?int $userId = null, ?string $identityNumber = null): bool
+    {
+        if (! $userId && ! $identityNumber) {
+            return false;
+        }
+
+        return self::where('status', self::STATUS_BORROWED)
+            ->whereNotNull('due_date')
+            ->where('due_date', '<', now())
+            ->where(function (Builder $query) use ($userId, $identityNumber) {
+                if ($userId) {
+                    $query->where('user_id', $userId);
+                }
+                if ($identityNumber) {
+                    if ($userId) {
+                        $query->orWhere('borrower_identity_number', $identityNumber);
+                    } else {
+                        $query->where('borrower_identity_number', $identityNumber);
+                    }
+                }
+            })
+            ->exists();
     }
 
     public const STATUSES = [

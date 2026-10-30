@@ -44,7 +44,7 @@ class BorrowingFlowTest extends TestCase
         $response = $this->actingAs($this->student, 'sanctum')
             ->postJson('/api/v1/borrowings', [
                 'items' => [
-                    ['book_id' => $this->book1->id, 'quantity' => 2],
+                    ['book_id' => $this->book1->id, 'quantity' => 1],
                     ['book_id' => $this->book2->id, 'quantity' => 1],
                 ],
                 'notes' => 'Keperluan tugas akhir',
@@ -462,5 +462,202 @@ class BorrowingFlowTest extends TestCase
             ->assertJsonPath('data.borrower_name', 'Bapak Joko (Wali Murid)')
             ->assertJsonPath('data.borrower_identity_number', '3201234567890005')
             ->assertJsonPath('data.user.identity_number', '3201234567890005');
+    }
+
+    public function test_pengajuan_peminjaman_ditolak_jika_meminjam_lebih_dari_2_buku_dalam_satu_pengajuan(): void
+    {
+        // 1. Single item with quantity 3
+        $resp1 = $this->actingAs($this->student, 'sanctum')
+            ->postJson('/api/v1/borrowings', [
+                'items' => [
+                    ['book_id' => $this->book1->id, 'quantity' => 3],
+                ],
+            ]);
+        $resp1->assertStatus(422)
+            ->assertJsonValidationErrors(['items']);
+
+        // 2. Two items totaling 3 books (2 + 1)
+        $resp2 = $this->actingAs($this->student, 'sanctum')
+            ->postJson('/api/v1/borrowings', [
+                'items' => [
+                    ['book_id' => $this->book1->id, 'quantity' => 2],
+                    ['book_id' => $this->book2->id, 'quantity' => 1],
+                ],
+            ]);
+        $resp2->assertStatus(422)
+            ->assertJsonValidationErrors(['items']);
+
+        // 3. Three items (exceeds max array size 2)
+        $book3 = Book::factory()->create(['stock' => 5]);
+        $resp3 = $this->actingAs($this->student, 'sanctum')
+            ->postJson('/api/v1/borrowings', [
+                'items' => [
+                    ['book_id' => $this->book1->id, 'quantity' => 1],
+                    ['book_id' => $this->book2->id, 'quantity' => 1],
+                    ['book_id' => $book3->id, 'quantity' => 1],
+                ],
+            ]);
+        $resp3->assertStatus(422)
+            ->assertJsonValidationErrors(['items']);
+    }
+
+    public function test_pengajuan_peminjaman_ditolak_jika_buku_yang_sama_dipilih_lebih_dari_satu_kali(): void
+    {
+        $response = $this->actingAs($this->student, 'sanctum')
+            ->postJson('/api/v1/borrowings', [
+                'items' => [
+                    ['book_id' => $this->book1->id, 'quantity' => 1],
+                    ['book_id' => $this->book1->id, 'quantity' => 1],
+                ],
+            ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['items.0.book_id']);
+    }
+
+    public function test_pengajuan_peminjaman_ditolak_jika_siswa_masih_memiliki_2_buku_aktif(): void
+    {
+        // Setup: Student already has 2 books currently borrowed
+        $existingBorrowing = Borrowing::factory()->borrowed()->create([
+            'user_id' => $this->student->id,
+        ]);
+        BorrowingItem::factory()->create([
+            'borrowing_id' => $existingBorrowing->id,
+            'book_id' => $this->book1->id,
+            'quantity' => 2,
+        ]);
+
+        // Attempt to borrow 1 more book
+        $response = $this->actingAs($this->student, 'sanctum')
+            ->postJson('/api/v1/borrowings', [
+                'items' => [
+                    ['book_id' => $this->book2->id, 'quantity' => 1],
+                ],
+            ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['items']);
+    }
+
+    public function test_pengajuan_peminjaman_ditolak_jika_akumulasi_buku_aktif_dan_pengajuan_baru_melebihi_2_buku(): void
+    {
+        // Setup: Student has 1 book currently pending
+        $existingBorrowing = Borrowing::factory()->create([
+            'user_id' => $this->student->id,
+            'status' => Borrowing::STATUS_PENDING,
+        ]);
+        BorrowingItem::factory()->create([
+            'borrowing_id' => $existingBorrowing->id,
+            'book_id' => $this->book1->id,
+            'quantity' => 1,
+        ]);
+
+        // Attempting to request 2 books (1 active + 2 requested = 3 > 2)
+        $responseExceeded = $this->actingAs($this->student, 'sanctum')
+            ->postJson('/api/v1/borrowings', [
+                'items' => [
+                    ['book_id' => $this->book2->id, 'quantity' => 2],
+                ],
+            ]);
+        $responseExceeded->assertStatus(422)
+            ->assertJsonValidationErrors(['items']);
+
+        // Requesting 1 book (1 active + 1 requested = 2 <= 2) is allowed
+        $responseAllowed = $this->actingAs($this->student, 'sanctum')
+            ->postJson('/api/v1/borrowings', [
+                'items' => [
+                    ['book_id' => $this->book2->id, 'quantity' => 1],
+                ],
+            ]);
+        $responseAllowed->assertCreated();
+    }
+
+    public function test_siswa_dapat_meminjam_kembali_setelah_buku_sebelumnya_dikembalikan_returned(): void
+    {
+        // Setup: Student had a borrowing of 2 books, but already RETURNED
+        $returnedBorrowing = Borrowing::factory()->returned()->create([
+            'user_id' => $this->student->id,
+        ]);
+        BorrowingItem::factory()->create([
+            'borrowing_id' => $returnedBorrowing->id,
+            'book_id' => $this->book1->id,
+            'quantity' => 2,
+        ]);
+
+        // Student can borrow 2 books again
+        $response = $this->actingAs($this->student, 'sanctum')
+            ->postJson('/api/v1/borrowings', [
+                'items' => [
+                    ['book_id' => $this->book1->id, 'quantity' => 1],
+                    ['book_id' => $this->book2->id, 'quantity' => 1],
+                ],
+            ]);
+
+        $response->assertCreated();
+    }
+
+    public function test_pengajuan_peminjaman_ditolak_jika_siswa_memiliki_buku_terlambat_overdue(): void
+    {
+        // Setup: Student has 1 borrowed book that is overdue
+        $overdueBorrowing = Borrowing::factory()->create([
+            'user_id' => $this->student->id,
+            'status' => Borrowing::STATUS_BORROWED,
+            'borrowed_at' => now()->subDays(5),
+            'due_date' => now()->subDays(2),
+        ]);
+        BorrowingItem::factory()->create([
+            'borrowing_id' => $overdueBorrowing->id,
+            'book_id' => $this->book1->id,
+            'quantity' => 1,
+        ]);
+
+        $response = $this->actingAs($this->student, 'sanctum')
+            ->postJson('/api/v1/borrowings', [
+                'items' => [
+                    ['book_id' => $this->book2->id, 'quantity' => 1],
+                ],
+            ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['items']);
+    }
+
+    public function test_peminjaman_langsung_walk_in_ditolak_jika_melebihi_maksimal_2_buku(): void
+    {
+        $response = $this->actingAs($this->staff, 'sanctum')
+            ->postJson('/api/v1/staff/borrowings/direct', [
+                'borrower_name' => 'Ahmad Santoso',
+                'borrower_type' => 'guest',
+                'items' => [
+                    ['book_id' => $this->book1->id, 'quantity' => 3],
+                ],
+            ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['items']);
+    }
+
+    public function test_peminjaman_langsung_walk_in_ditolak_jika_peminjam_sudah_memiliki_2_buku_aktif(): void
+    {
+        // Setup: Student already has 2 active borrowed books
+        $existingBorrowing = Borrowing::factory()->borrowed()->create([
+            'user_id' => $this->student->id,
+        ]);
+        BorrowingItem::factory()->create([
+            'borrowing_id' => $existingBorrowing->id,
+            'book_id' => $this->book1->id,
+            'quantity' => 2,
+        ]);
+
+        $response = $this->actingAs($this->staff, 'sanctum')
+            ->postJson('/api/v1/staff/borrowings/direct', [
+                'user_id' => $this->student->id,
+                'items' => [
+                    ['book_id' => $this->book2->id, 'quantity' => 1],
+                ],
+            ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['items']);
     }
 }

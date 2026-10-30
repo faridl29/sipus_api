@@ -28,9 +28,9 @@ class StoreBorrowingRequest extends FormRequest
         $maxDueDate = now()->addDays(Borrowing::MAX_BORROWING_DAYS_STUDENT)->toDateString();
 
         return [
-            'items' => ['required', 'array', 'min:1'],
-            'items.*.book_id' => ['required', 'integer', 'exists:books,id'],
-            'items.*.quantity' => ['required', 'integer', 'min:1'],
+            'items' => ['required', 'array', 'min:1', 'max:'.Borrowing::MAX_BOOKS_PER_BORROWER],
+            'items.*.book_id' => ['required', 'integer', 'distinct', 'exists:books,id'],
+            'items.*.quantity' => ['required', 'integer', 'min:1', 'max:'.Borrowing::MAX_BOOKS_PER_BORROWER],
             'due_date' => [
                 'nullable',
                 'date',
@@ -49,8 +49,19 @@ class StoreBorrowingRequest extends FormRequest
     public function messages(): array
     {
         $maxDays = Borrowing::MAX_BORROWING_DAYS_STUDENT;
+        $maxBooks = Borrowing::MAX_BOOKS_PER_BORROWER;
 
         return [
+            'items.required' => 'Daftar buku yang dipinjam wajib diisi.',
+            'items.array' => 'Format daftar buku harus berupa array.',
+            'items.min' => 'Minimal meminjam 1 buku.',
+            'items.max' => "Maksimal peminjaman adalah {$maxBooks} buku per orang.",
+            'items.*.book_id.required' => 'ID buku wajib diisi.',
+            'items.*.book_id.distinct' => 'Buku yang sama tidak boleh dipilih lebih dari satu kali.',
+            'items.*.book_id.exists' => 'Buku yang dipilih tidak ditemukan.',
+            'items.*.quantity.required' => 'Jumlah eksemplar buku wajib diisi.',
+            'items.*.quantity.min' => 'Jumlah eksemplar buku minimal 1.',
+            'items.*.quantity.max' => "Maksimal peminjaman adalah {$maxBooks} eksemplar per buku.",
             'due_date.before_or_equal' => "Batas maksimal pengembalian buku adalah {$maxDays} hari dari tanggal pengajuan.",
             'due_date.after_or_equal' => 'Tanggal pengembalian tidak boleh sebelum hari ini.',
         ];
@@ -66,6 +77,42 @@ class StoreBorrowingRequest extends FormRequest
 
             if (! is_array($items)) {
                 return;
+            }
+
+            $totalRequestedQuantity = 0;
+            foreach ($items as $item) {
+                if (isset($item['quantity']) && is_numeric($item['quantity'])) {
+                    $totalRequestedQuantity += (int) $item['quantity'];
+                }
+            }
+
+            if ($totalRequestedQuantity > Borrowing::MAX_BOOKS_PER_BORROWER) {
+                $validator->errors()->add(
+                    'items',
+                    sprintf('Maksimal jumlah buku yang dapat dipinjam adalah %d buku.', Borrowing::MAX_BOOKS_PER_BORROWER)
+                );
+            }
+
+            $user = $this->user();
+            if ($user) {
+                if (Borrowing::hasOverdueBorrowingsForUser($user->id)) {
+                    $validator->errors()->add(
+                        'items',
+                        'Anda memiliki peminjaman buku yang melewati batas waktu (terlambat). Harap kembalikan buku terlebih dahulu sebelum mengajukan peminjaman baru.'
+                    );
+                }
+
+                $activeBooksCount = Borrowing::getActiveBooksCountForUser($user->id);
+                if (($activeBooksCount + $totalRequestedQuantity) > Borrowing::MAX_BOOKS_PER_BORROWER) {
+                    $validator->errors()->add(
+                        'items',
+                        sprintf(
+                            'Pengajuan melebihi batas kuota peminjaman. Anda masih memiliki %d buku yang sedang dipinjam atau dalam proses pengajuan (maksimal %d buku per orang).',
+                            $activeBooksCount,
+                            Borrowing::MAX_BOOKS_PER_BORROWER
+                        )
+                    );
+                }
             }
 
             foreach ($items as $index => $item) {

@@ -414,7 +414,7 @@ class BorrowingController extends Controller
      *     operationId="directBorrowingByStaff",
      *     tags={"Staff - Borrowings"},
      *     summary="Peminjaman langsung di tempat (Walk-in / Tamu / Siswa / Guru)",
-     *     description="Petugas mencatat peminjaman langsung di tempat untuk siswa terdaftar, guru/staf, maupun tamu umum. Status langsung menjadi BORROWED, stok buku otomatis berkurang, dan batas waktu pengembalian maksimal 3 hari.",
+     *     description="Petugas mencatat peminjaman langsung di tempat untuk siswa terdaftar, guru/staf, maupun tamu umum (maksimal 2 buku). Status langsung menjadi BORROWED, stok buku otomatis berkurang, dan batas waktu pengembalian maksimal 3 hari.",
      *     security={{"bearerAuth":{}}},
      *
      *     @OA\RequestBody(

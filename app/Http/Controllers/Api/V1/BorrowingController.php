@@ -24,7 +24,7 @@ class BorrowingController extends Controller
      *     operationId="storeBorrowing",
      *     tags={"Borrowings"},
      *     summary="Ajukan peminjaman buku (Siswa)",
-     *     description="Siswa mengajukan peminjaman satu atau beberapa buku. Status awal otomatis PENDING. Maksimal durasi pinjam 3 hari.",
+     *     description="Siswa mengajukan peminjaman buku (maksimal 2 buku). Status awal otomatis PENDING. Maksimal durasi pinjam 3 hari.",
      *     security={{"bearerAuth":{}}},
      *
      *     @OA\RequestBody(

@@ -234,7 +234,9 @@ Siswa dapat mengajukan pinjaman satu atau beberapa judul buku sekaligus dalam 1 
   Accept: application/json
   ```
 - **Ketentuan Aturan Pinjam:**
-  - `items`: Minimal 1 buku, array objek berisi `book_id` dan `quantity`.
+  - `items`: Minimal 1 buku, maksimal **2 buku** per orang, array objek berisi `book_id` dan `quantity`. Buku yang sama tidak boleh diduplikasi dalam request.
+  - Kuota Peminjaman: Siswa maksimal memiliki total **2 buku aktif** (status `PENDING`, `APPROVED`, atau `BORROWED`). Pengajuan akan ditolak jika akumulasi buku aktif dan buku yang baru diajukan melebihi 2 buku.
+  - Bebas Tunggakan: Siswa tidak boleh memiliki peminjaman aktif yang sudah melewati batas waktu (*overdue*).
   - `due_date`: Opsional. Format tanggal `YYYY-MM-DD`. Maksimal **3 hari** dari hari ini. Jika tidak diisi, backend otomatis menyetel 3 hari ke depan.
   - `notes`: Opsional (catatan alasan pinjam, maksimal 1000 karakter).
   - Status peminjaman otomatis disetel ke **`PENDING`**.

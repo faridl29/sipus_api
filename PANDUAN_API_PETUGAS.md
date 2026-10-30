@@ -267,7 +267,7 @@ Digunakan ketika peminjam (Siswa / Guru / Pegawai / Tamu) langsung datang ke per
   - `borrower_name`: Nama peminjam *(wajib jika `user_id` kosong)*.
   - `borrower_identity_number`: NIS / NIP / KTP.
   - `due_date`: Tanggal batas kembali (maksimal 3 hari untuk siswa/tamu, 7 hari untuk guru/staff).
-  - `items`: Array rincian buku yang dipinjam (`book_id` dan `quantity`).
+  - `items`: Array rincian buku yang dipinjam (`book_id` dan `quantity`). Maksimal total **2 buku** per orang, dan peminjam tidak boleh memiliki peminjaman aktif yang melebihi kuota 2 buku atau memiliki buku yang terlambat (*overdue*).
 - **Efek Otomatis:** Status langsung menjadi `BORROWED` dan stok buku langsung dipotong.
 
 ---
