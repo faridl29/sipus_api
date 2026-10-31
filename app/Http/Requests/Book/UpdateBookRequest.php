@@ -35,6 +35,7 @@ class UpdateBookRequest extends FormRequest
             'publication_year' => ['nullable', 'integer', 'min:1000', 'max:2100'],
             'isbn' => ['nullable', 'string', 'max:50', Rule::unique('books', 'isbn')->ignore($bookId)->withoutTrashed()],
             'stock' => ['sometimes', 'required', 'integer', 'min:0'],
+            'rack_location' => ['sometimes', 'nullable', 'string', 'max:100'],
             'description' => ['nullable', 'string'],
             'cover' => ['sometimes', 'nullable', ...$coverRules],
         ];

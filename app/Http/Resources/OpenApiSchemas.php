@@ -30,6 +30,7 @@ namespace App\Http\Resources;
  *     @OA\Property(property="isbn", type="string", example="978-979-3062-79-2"),
  *     @OA\Property(property="stock", type="integer", example=10),
  *     @OA\Property(property="is_available", type="boolean", example=true),
+ *     @OA\Property(property="rack_location", type="string", nullable=true, example="Rak A-02"),
  *     @OA\Property(property="description", type="string", example="Novel tentang perjuangan sepuluh anak di Belitung."),
  *     @OA\Property(property="cover", type="string", example="https://example.com/covers/laskar-pelangi.jpg"),
  *     @OA\Property(property="created_at", type="string", format="date-time", example="2026-09-29T10:00:00.000000Z"),

@@ -34,6 +34,7 @@ class StoreBookRequest extends FormRequest
             'publication_year' => ['nullable', 'integer', 'min:1000', 'max:2100'],
             'isbn' => ['nullable', 'string', 'max:50', Rule::unique('books', 'isbn')->withoutTrashed()],
             'stock' => ['required', 'integer', 'min:0'],
+            'rack_location' => ['nullable', 'string', 'max:100'],
             'description' => ['nullable', 'string'],
             'cover' => ['nullable', ...$coverRules],
         ];

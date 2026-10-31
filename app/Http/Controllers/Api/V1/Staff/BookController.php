@@ -104,6 +104,7 @@ class BookController extends Controller
      *             @OA\Property(property="publication_year", type="integer", example=2005),
      *             @OA\Property(property="isbn", type="string", example="978-979-3062-79-2"),
      *             @OA\Property(property="stock", type="integer", example=10),
+     *             @OA\Property(property="rack_location", type="string", example="Rak A-02"),
      *             @OA\Property(property="description", type="string", example="Novel tentang perjuangan sepuluh anak di Belitung."),
      *             @OA\Property(property="cover", type="string", example="https://example.com/covers/laskar-pelangi.jpg")
      *         )

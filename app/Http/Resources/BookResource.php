@@ -31,6 +31,7 @@ class BookResource extends JsonResource
             'isbn' => $this->isbn,
             'stock' => $this->stock,
             'is_available' => $this->stock > 0,
+            'rack_location' => $this->rack_location,
             'description' => $this->description,
             'cover' => $coverUrl,
             'created_at' => $this->created_at?->toISOString(),

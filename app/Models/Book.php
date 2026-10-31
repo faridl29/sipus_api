@@ -28,6 +28,7 @@ class Book extends Model
         'stock',
         'description',
         'cover',
+        'rack_location',
     ];
 
     /**

@@ -57,6 +57,7 @@ class BookCatalogTest extends TestCase
             'title' => 'Filosofi Teras',
             'author' => 'Henry Manampiring',
             'stock' => 10,
+            'rack_location' => 'Rak A-01',
         ]);
 
         $response = $this->getJson("/api/v1/books/{$book->id}");
@@ -69,6 +70,7 @@ class BookCatalogTest extends TestCase
                     'title' => 'Filosofi Teras',
                     'author' => 'Henry Manampiring',
                     'stock' => 10,
+                    'rack_location' => 'Rak A-01',
                     'is_available' => true,
                 ],
             ]);

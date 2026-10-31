@@ -33,6 +33,7 @@ class StaffBookManagementTest extends TestCase
                 'title' => 'Buku Baru Bertema Cover',
                 'author' => 'Penulis Cover',
                 'stock' => 5,
+                'rack_location' => 'Rak A-02',
                 'isbn' => '978-602-1234-56-7',
                 'cover' => $coverFile,
             ], [
@@ -46,10 +47,12 @@ class StaffBookManagementTest extends TestCase
             ]);
 
         $book = Book::where('isbn', '978-602-1234-56-7')->firstOrFail();
+        $this->assertSame('Rak A-02', $book->rack_location);
         $this->assertNotNull($book->cover);
         Storage::disk('public')->assertExists($book->cover);
 
         $response->assertJsonPath('data.cover', Storage::disk('public')->url($book->cover));
+        $response->assertJsonPath('data.rack_location', 'Rak A-02');
     }
 
     public function test_staff_dapat_mengubah_buku_dan_upload_cover_via_post_method_put(): void
@@ -68,6 +71,7 @@ class StaffBookManagementTest extends TestCase
             ->post("/api/v1/staff/books/{$book->id}", [
                 '_method' => 'PUT',
                 'title' => 'Judul Buku Telah Diperbarui',
+                'rack_location' => 'Rak C-05',
                 'cover' => $newCoverFile,
             ], [
                 'Accept' => 'application/json',
@@ -81,6 +85,7 @@ class StaffBookManagementTest extends TestCase
 
         $book->refresh();
         $this->assertSame('Judul Buku Telah Diperbarui', $book->title);
+        $this->assertSame('Rak C-05', $book->rack_location);
         $this->assertNotSame($initialCover, $book->cover);
 
         // File cover lama terhapus dan file cover baru tersimpan

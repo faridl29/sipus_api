@@ -26,6 +26,8 @@ class BookFactory extends Factory
             'publication_year' => fake()->numberBetween(1990, 2025),
             'isbn' => fake()->unique()->isbn13(),
             'stock' => fake()->numberBetween(1, 20),
+            'rack_location' => 'Rak '.fake()->randomElement(['A', 'B', 'C', 'D']).'-'.fake()->numberBetween(1, 10),
+            'rack_location' => 'Rak ' . fake()->randomElement(['A', 'B', 'C', 'D']) . '-' . fake()->numberBetween(1, 10),
             'description' => fake()->paragraph(),
             'cover' => fake()->imageUrl(),
         ];
