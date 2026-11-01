@@ -249,4 +249,82 @@ class BorrowingController extends Controller
 
         return $this->successResponse(new BorrowingResource($borrowing), 'Borrowing retrieved successfully');
     }
+
+    /**
+     * @OA\Post(
+     *     path="/api/v1/borrowings/{id}/cancel",
+     *     operationId="cancelBorrowing",
+     *     tags={"Borrowings"},
+     *     summary="Batalkan pengajuan peminjaman (Siswa)",
+     *     description="Membatalkan pengajuan peminjaman buku yang masih berstatus PENDING atau APPROVED oleh siswa yang bersangkutan. Jika status sebelumnya APPROVED, buku yang sedang ditahan akan otomatis dikembalikan ke stok.",
+     *     security={{"bearerAuth":{}}},
+     *
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="ID Transaksi Peminjaman",
+     *
+     *         @OA\Schema(type="integer")
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=200,
+     *         description="Pengajuan peminjaman berhasil dibatalkan",
+     *
+     *         @OA\JsonContent(
+     *
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Borrowing request cancelled successfully"),
+     *             @OA\Property(property="data", ref="#/components/schemas/BorrowingResource")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=403,
+     *         description="Akses ditolak (bukan pemilik pengajuan)",
+     *
+     *         @OA\JsonContent(
+     *
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="This action is unauthorized.")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=422,
+     *         description="Status transaksi bukan PENDING atau APPROVED (tidak dapat dibatalkan)",
+     *
+     *         @OA\JsonContent(
+     *
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Perubahan status dari BORROWED ke CANCELLED tidak diizinkan.")
+     *         )
+     *     ),
+     *
+     *     @OA\Response(
+     *         response=404,
+     *         description="Transaksi peminjaman tidak ditemukan",
+     *
+     *         @OA\JsonContent(
+     *
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Resource not found.")
+     *         )
+     *     )
+     * )
+     */
+    public function cancel(int $id, Request $request): JsonResponse
+    {
+        $borrowing = Borrowing::findOrFail($id);
+
+        Gate::authorize('cancel', $borrowing);
+
+        $updatedBorrowing = $this->borrowingService->cancelBorrowing($borrowing);
+
+        return $this->successResponse(
+            new BorrowingResource($updatedBorrowing),
+            'Borrowing request cancelled successfully'
+        );
+    }
 }

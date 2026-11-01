@@ -38,4 +38,12 @@ class BorrowingPolicy
     {
         return $user->isStaff();
     }
+
+    /**
+     * Determine whether the user can cancel the borrowing request.
+     */
+    public function cancel(User $user, Borrowing $borrowing): bool
+    {
+        return (int) $user->id === (int) $borrowing->user_id;
+    }
 }

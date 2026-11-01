@@ -97,8 +97,10 @@ class BorrowingService
 
     /**
      * Approve a PENDING borrowing.
+     * Holds/reserves book stock and sets pickup deadline to 1 school day (weekday).
      *
      * @throws InvalidStatusTransitionException
+     * @throws InsufficientStockException
      */
     public function approveBorrowing(Borrowing $borrowing): Borrowing
     {
@@ -106,51 +108,10 @@ class BorrowingService
             throw new InvalidStatusTransitionException($borrowing->status, Borrowing::STATUS_APPROVED);
         }
 
-        $borrowing->update([
-            'status' => Borrowing::STATUS_APPROVED,
-        ]);
-
-        return $borrowing->fresh(['items.book', 'user']);
-    }
-
-    /**
-     * Reject a PENDING borrowing.
-     *
-     * @throws InvalidStatusTransitionException
-     */
-    public function rejectBorrowing(Borrowing $borrowing, ?string $notes = null): Borrowing
-    {
-        if ($borrowing->status !== Borrowing::STATUS_PENDING) {
-            throw new InvalidStatusTransitionException($borrowing->status, Borrowing::STATUS_REJECTED);
-        }
-
-        $updateData = ['status' => Borrowing::STATUS_REJECTED];
-        if ($notes !== null) {
-            $updateData['notes'] = $notes;
-        }
-
-        $borrowing->update($updateData);
-
-        return $borrowing->fresh(['items.book', 'user']);
-    }
-
-    /**
-     * Confirm that books are handed over to student (APPROVED -> BORROWED).
-     * Deducts stock atomically and sets due_date (max 3 days).
-     *
-     * @throws InvalidStatusTransitionException
-     * @throws InsufficientStockException
-     */
-    public function confirmBorrowing(Borrowing $borrowing): Borrowing
-    {
-        if ($borrowing->status !== Borrowing::STATUS_APPROVED) {
-            throw new InvalidStatusTransitionException($borrowing->status, Borrowing::STATUS_BORROWED);
-        }
-
         return DB::transaction(function () use ($borrowing) {
-            $borrowing->load(['items', 'user']);
+            $borrowing->load('items');
 
-            // Verify stock and decrement for each book
+            // Verify stock and hold/reserve (decrement) for each book
             foreach ($borrowing->items as $item) {
                 /** @var Book $book */
                 $book = Book::withTrashed()->lockForUpdate()->findOrFail($item->book_id);
@@ -161,6 +122,163 @@ class BorrowingService
 
                 $book->decrement('stock', $item->quantity);
             }
+
+            $approvedAt = now();
+            $borrowing->update([
+                'status' => Borrowing::STATUS_APPROVED,
+                'approved_at' => $approvedAt,
+                'pickup_deadline' => $approvedAt->copy()->addWeekday(),
+            ]);
+
+            return $borrowing->fresh(['items.book', 'user']);
+        });
+    }
+
+    /**
+     * Reject a PENDING or APPROVED borrowing.
+     * Restores stock if previously APPROVED.
+     *
+     * @throws InvalidStatusTransitionException
+     */
+    public function rejectBorrowing(Borrowing $borrowing, ?string $notes = null): Borrowing
+    {
+        if (! in_array($borrowing->status, [Borrowing::STATUS_PENDING, Borrowing::STATUS_APPROVED], true)) {
+            throw new InvalidStatusTransitionException($borrowing->status, Borrowing::STATUS_REJECTED);
+        }
+
+        return DB::transaction(function () use ($borrowing, $notes) {
+            $borrowing->load('items');
+
+            // If it was already approved, release held stock
+            if ($borrowing->status === Borrowing::STATUS_APPROVED) {
+                foreach ($borrowing->items as $item) {
+                    /** @var Book $book */
+                    $book = Book::withTrashed()->lockForUpdate()->findOrFail($item->book_id);
+                    $book->increment('stock', $item->quantity);
+                }
+            }
+
+            $updateData = ['status' => Borrowing::STATUS_REJECTED];
+            if ($notes !== null) {
+                $updateData['notes'] = $notes;
+            }
+
+            $borrowing->update($updateData);
+
+            return $borrowing->fresh(['items.book', 'user']);
+        });
+    }
+
+    /**
+     * Cancel a PENDING or APPROVED borrowing by the student.
+     * Restores stock if previously APPROVED.
+     *
+     * @throws InvalidStatusTransitionException
+     */
+    public function cancelBorrowing(Borrowing $borrowing): Borrowing
+    {
+        if (! in_array($borrowing->status, [Borrowing::STATUS_PENDING, Borrowing::STATUS_APPROVED], true)) {
+            throw new InvalidStatusTransitionException($borrowing->status, Borrowing::STATUS_CANCELLED);
+        }
+
+        return DB::transaction(function () use ($borrowing) {
+            $borrowing->load('items');
+
+            // If it was approved, release the held stock
+            if ($borrowing->status === Borrowing::STATUS_APPROVED) {
+                foreach ($borrowing->items as $item) {
+                    /** @var Book $book */
+                    $book = Book::withTrashed()->lockForUpdate()->findOrFail($item->book_id);
+                    $book->increment('stock', $item->quantity);
+                }
+            }
+
+            $borrowing->update(['status' => Borrowing::STATUS_CANCELLED]);
+
+            return $borrowing->fresh(['items.book', 'user']);
+        });
+    }
+
+    /**
+     * Auto-cancel uncollected APPROVED borrowings that exceeded the 1 school day deadline.
+     * Releases held stock back to available inventory.
+     */
+    public function expireUncollectedBorrowings(): int
+    {
+        $expiredBorrowings = Borrowing::where('status', Borrowing::STATUS_APPROVED)
+            ->whereNotNull('pickup_deadline')
+            ->where('pickup_deadline', '<', now())
+            ->with('items')
+            ->get();
+
+        $count = 0;
+        foreach ($expiredBorrowings as $borrowing) {
+            DB::transaction(function () use ($borrowing) {
+                foreach ($borrowing->items as $item) {
+                    /** @var Book $book */
+                    $book = Book::withTrashed()->lockForUpdate()->findOrFail($item->book_id);
+                    $book->increment('stock', $item->quantity);
+                }
+
+                $cancelNote = 'Batal otomatis: Melewati batas waktu pengambilan 1 hari sekolah.';
+                $borrowing->update([
+                    'status' => Borrowing::STATUS_CANCELLED,
+                    'notes' => trim(($borrowing->notes ? $borrowing->notes.' | ' : '').$cancelNote),
+                ]);
+            });
+            $count++;
+        }
+
+        return $count;
+    }
+
+    /**
+     * Auto-cancel uncollected APPROVED borrowings that exceeded the 1 school day deadline.
+     * Releases held stock back to available inventory.
+     */
+    public function expireUncollectedBorrowings(): int
+    {
+        $expiredBorrowings = Borrowing::where('status', Borrowing::STATUS_APPROVED)
+            ->whereNotNull('pickup_deadline')
+            ->where('pickup_deadline', '<', now())
+            ->with('items')
+            ->get();
+
+        $count = 0;
+        foreach ($expiredBorrowings as $borrowing) {
+            DB::transaction(function () use ($borrowing) {
+                foreach ($borrowing->items as $item) {
+                    /** @var Book $book */
+                    $book = Book::withTrashed()->lockForUpdate()->findOrFail($item->book_id);
+                    $book->increment('stock', $item->quantity);
+                }
+
+                $cancelNote = 'Batal otomatis: Melewati batas waktu pengambilan 1 hari sekolah.';
+                $borrowing->update([
+                    'status' => Borrowing::STATUS_CANCELLED,
+                    'notes' => trim(($borrowing->notes ? $borrowing->notes . ' | ' : '') . $cancelNote),
+                ]);
+            });
+            $count++;
+        }
+
+        return $count;
+    }
+
+    /**
+     * Confirm that books are handed over to student (APPROVED -> BORROWED).
+     * Stock was already held during approval, sets due_date (max 3 days).
+     *
+     * @throws InvalidStatusTransitionException
+     */
+    public function confirmBorrowing(Borrowing $borrowing): Borrowing
+    {
+        if ($borrowing->status !== Borrowing::STATUS_APPROVED) {
+            throw new InvalidStatusTransitionException($borrowing->status, Borrowing::STATUS_BORROWED);
+        }
+
+        return DB::transaction(function () use ($borrowing) {
+            $borrowing->load(['items', 'user']);
 
             $borrowedAt = now();
             $maxDays = Borrowing::getMaxDaysForBorrower($borrowing->borrower_type ?? $borrowing->user?->role);

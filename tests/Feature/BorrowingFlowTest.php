@@ -87,7 +87,7 @@ class BorrowingFlowTest extends TestCase
             ->assertJsonCount(1, 'data');
     }
 
-    public function test_staff_dapat_approve_pending_dan_approved_tidak_langsung_menjadi_borrowed(): void
+    public function test_staff_dapat_approve_pending_dan_stok_buku_ditahan_selama_satu_hari_sekolah(): void
     {
         $borrowing = Borrowing::factory()->create([
             'user_id' => $this->student->id,
@@ -108,15 +108,17 @@ class BorrowingFlowTest extends TestCase
 
         $borrowing->refresh();
 
-        // Check rule 8: APPROVED tidak langsung menjadi BORROWED
+        // Check: APPROVED tidak langsung menjadi BORROWED
         $this->assertEquals(Borrowing::STATUS_APPROVED, $borrowing->status);
         $this->assertNull($borrowing->borrowed_at);
+        $this->assertNotNull($borrowing->approved_at);
+        $this->assertNotNull($borrowing->pickup_deadline);
 
-        // Stock must still be unchanged
-        $this->assertEquals(5, $this->book1->fresh()->stock);
+        // Buku ditahan selama 1 hari sekolah: stok berkurang dari 5 menjadi 3
+        $this->assertEquals(3, $this->book1->fresh()->stock);
     }
 
-    public function test_staff_dapat_confirm_borrowing_approved_menjadi_borrowed_dan_stock_berkurang(): void
+    public function test_staff_dapat_confirm_borrowing_approved_menjadi_borrowed(): void
     {
         $borrowing = Borrowing::factory()->approved()->create([
             'user_id' => $this->student->id,
@@ -126,6 +128,9 @@ class BorrowingFlowTest extends TestCase
             'book_id' => $this->book1->id,
             'quantity' => 2,
         ]);
+
+        // Stok saat approved sudah ditahan menjadi 3
+        $this->book1->update(['stock' => 3]);
 
         $response = $this->actingAs($this->staff, 'sanctum')
             ->postJson("/api/v1/staff/borrowings/{$borrowing->id}/borrow");
@@ -137,8 +142,8 @@ class BorrowingFlowTest extends TestCase
         $this->assertEquals(Borrowing::STATUS_BORROWED, $borrowing->status);
         $this->assertNotNull($borrowing->borrowed_at);
 
-        // Check rule 11: Stock berkurang ketika borrowing menjadi BORROWED
-        $this->assertEquals(3, $this->book1->fresh()->stock); // 5 - 2 = 3
+        // Stok tetap 3 karena sudah dipotong saat status APPROVED
+        $this->assertEquals(3, $this->book1->fresh()->stock);
     }
 
     public function test_staff_dapat_return_borrowing_dan_stock_bertambah_kembali(): void
@@ -208,13 +213,14 @@ class BorrowingFlowTest extends TestCase
         $resp5->assertStatus(422);
     }
 
-    public function test_stock_tidak_boleh_negatif_dan_konfirmasi_peminjaman_gagal_jika_stok_kurang(): void
+    public function test_stock_tidak_boleh_negatif_dan_approve_peminjaman_gagal_jika_stok_kurang(): void
     {
         // Set book stock to 1
         $this->book1->update(['stock' => 1]);
 
-        $borrowing = Borrowing::factory()->approved()->create([
+        $borrowing = Borrowing::factory()->create([
             'user_id' => $this->student->id,
+            'status' => Borrowing::STATUS_PENDING,
         ]);
         // Borrowing requests 2 books, but only 1 available
         BorrowingItem::factory()->create([
@@ -224,7 +230,7 @@ class BorrowingFlowTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->staff, 'sanctum')
-            ->postJson("/api/v1/staff/borrowings/{$borrowing->id}/borrow");
+            ->postJson("/api/v1/staff/borrowings/{$borrowing->id}/approve");
 
         $response->assertStatus(422)
             ->assertJson([
@@ -233,8 +239,8 @@ class BorrowingFlowTest extends TestCase
 
         // Stock must remain unchanged at 1 and never go below zero
         $this->assertEquals(1, $this->book1->fresh()->stock);
-        // Borrowing status must remain APPROVED, not BORROWED
-        $this->assertEquals(Borrowing::STATUS_APPROVED, $borrowing->fresh()->status);
+        // Borrowing status must remain PENDING, not APPROVED
+        $this->assertEquals(Borrowing::STATUS_PENDING, $borrowing->fresh()->status);
     }
 
     public function test_pengajuan_peminjaman_ditolak_jika_stok_buku_tidak_mencukupi_pada_input(): void
@@ -659,5 +665,127 @@ class BorrowingFlowTest extends TestCase
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['items']);
+    }
+
+    public function test_student_dapat_cancel_borrowing_status_pending(): void
+    {
+        $borrowing = Borrowing::factory()->create([
+            'user_id' => $this->student->id,
+            'status' => Borrowing::STATUS_PENDING,
+        ]);
+        BorrowingItem::factory()->create([
+            'borrowing_id' => $borrowing->id,
+            'book_id' => $this->book1->id,
+            'quantity' => 1,
+        ]);
+
+        $this->assertSame(1, Borrowing::getActiveBooksCountForUser($this->student->id));
+        $this->assertSame(5, $this->book1->fresh()->stock);
+
+        $response = $this->actingAs($this->student, 'sanctum')
+            ->postJson("/api/v1/borrowings/{$borrowing->id}/cancel");
+
+        $response->assertOk()
+            ->assertJson([
+                'success' => true,
+                'message' => 'Borrowing request cancelled successfully',
+            ])
+            ->assertJsonPath('data.status', Borrowing::STATUS_CANCELLED);
+
+        $this->assertSame(Borrowing::STATUS_CANCELLED, $borrowing->fresh()->status);
+        $this->assertSame(5, $this->book1->fresh()->stock);
+        // Kuota aktif siswa kembali bebas
+        $this->assertSame(0, Borrowing::getActiveBooksCountForUser($this->student->id));
+    }
+
+    public function test_student_dapat_cancel_borrowing_status_approved_dan_stok_kembali_tersedia(): void
+    {
+        // 1. Buat pengajuan pending
+        $borrowing = Borrowing::factory()->create([
+            'user_id' => $this->student->id,
+            'status' => Borrowing::STATUS_PENDING,
+        ]);
+        BorrowingItem::factory()->create([
+            'borrowing_id' => $borrowing->id,
+            'book_id' => $this->book1->id,
+            'quantity' => 2,
+        ]);
+
+        // 2. Staff approves: buku ditahan, stok berkurang dari 5 menjadi 3
+        $this->actingAs($this->staff, 'sanctum')
+            ->postJson("/api/v1/staff/borrowings/{$borrowing->id}/approve")
+            ->assertOk();
+
+        $this->assertSame(3, $this->book1->fresh()->stock);
+        $this->assertNotNull($borrowing->fresh()->pickup_deadline);
+
+        // 3. Siswa membatalkan pengajuan yang sudah approved
+        $response = $this->actingAs($this->student, 'sanctum')
+            ->postJson("/api/v1/borrowings/{$borrowing->id}/cancel");
+
+        $response->assertOk()
+            ->assertJsonPath('data.status', Borrowing::STATUS_CANCELLED);
+
+        // 4. Stok buku otomatis kembali utuh menjadi 5
+        $this->assertSame(5, $this->book1->fresh()->stock);
+        $this->assertSame(0, Borrowing::getActiveBooksCountForUser($this->student->id));
+    }
+
+    public function test_pengajuan_approved_melewati_batas_waktu_otomatis_dibatalkan_via_scheduler(): void
+    {
+        // Setup: buku awal stok 5, dipinjam 2 saat approved -> stok jadi 3
+        $this->book1->update(['stock' => 3]);
+
+        $borrowing = Borrowing::factory()->approved()->create([
+            'user_id' => $this->student->id,
+            'approved_at' => now()->subDays(2),
+            'pickup_deadline' => now()->subDay(), // sudah lewat batas 1 hari sekolah
+        ]);
+        BorrowingItem::factory()->create([
+            'borrowing_id' => $borrowing->id,
+            'book_id' => $this->book1->id,
+            'quantity' => 2,
+        ]);
+
+        // Jalankan perintah auto-cancel scheduler
+        $this->artisan('borrowings:cancel-expired')
+            ->assertExitCode(0);
+
+        $borrowing->refresh();
+        $this->assertSame(Borrowing::STATUS_CANCELLED, $borrowing->status);
+        $this->assertStringContainsString('Batal otomatis', $borrowing->notes);
+
+        // Buku kembali tersedia: stok naik kembali dari 3 menjadi 5
+        $this->assertSame(5, $this->book1->fresh()->stock);
+    }
+
+    public function test_student_tidak_dapat_cancel_borrowing_yang_sudah_borrowed(): void
+    {
+        $borrowing = Borrowing::factory()->borrowed()->create([
+            'user_id' => $this->student->id,
+        ]);
+
+        $response = $this->actingAs($this->student, 'sanctum')
+            ->postJson("/api/v1/borrowings/{$borrowing->id}/cancel");
+
+        $response->assertStatus(422)
+            ->assertJson([
+                'success' => false,
+                'message' => 'Perubahan status dari BORROWED ke CANCELLED tidak diizinkan.',
+            ]);
+    }
+
+    public function test_student_tidak_dapat_cancel_borrowing_milik_siswa_lain(): void
+    {
+        $otherStudent = User::factory()->student()->create();
+        $borrowing = Borrowing::factory()->create([
+            'user_id' => $otherStudent->id,
+            'status' => Borrowing::STATUS_PENDING,
+        ]);
+
+        $response = $this->actingAs($this->student, 'sanctum')
+            ->postJson("/api/v1/borrowings/{$borrowing->id}/cancel");
+
+        $response->assertForbidden();
     }
 }

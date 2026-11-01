@@ -33,6 +33,8 @@ class BorrowingFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'status' => Borrowing::STATUS_APPROVED,
+            'approved_at' => now(),
+            'pickup_deadline' => now()->addWeekday(),
         ]);
     }
 

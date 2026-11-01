@@ -24,6 +24,8 @@ class Borrowing extends Model
 
     public const STATUS_RETURNED = 'RETURNED';
 
+    public const STATUS_CANCELLED = 'CANCELLED';
+
     public const MAX_BORROWING_DAYS_STUDENT = 3;
 
     public const MAX_BORROWING_DAYS_TEACHER = 7;
@@ -134,6 +136,7 @@ class Borrowing extends Model
         self::STATUS_REJECTED,
         self::STATUS_BORROWED,
         self::STATUS_RETURNED,
+        self::STATUS_CANCELLED,
     ];
 
     protected static function booted(): void
@@ -185,6 +188,8 @@ class Borrowing extends Model
         'borrower_identity_number',
         'borrower_type',
         'status',
+        'approved_at',
+        'pickup_deadline',
         'borrowed_at',
         'due_date',
         'returned_at',
@@ -199,6 +204,8 @@ class Borrowing extends Model
     protected function casts(): array
     {
         return [
+            'approved_at' => 'datetime',
+            'pickup_deadline' => 'datetime',
             'borrowed_at' => 'datetime',
             'due_date' => 'datetime',
             'returned_at' => 'datetime',

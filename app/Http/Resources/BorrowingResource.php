@@ -24,6 +24,8 @@ class BorrowingResource extends JsonResource
             'borrower_type' => $this->borrower_type ?? $this->user?->role ?? 'student',
             'user' => new UserResource($this->whenLoaded('user')),
             'status' => $this->status,
+            'approved_at' => $this->approved_at?->toISOString(),
+            'pickup_deadline' => $this->pickup_deadline?->toISOString(),
             'borrowed_at' => $this->borrowed_at?->toISOString(),
             'due_date' => $this->due_date?->toISOString(),
             'returned_at' => $this->returned_at?->toISOString(),

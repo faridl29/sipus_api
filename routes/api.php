@@ -28,6 +28,7 @@ Route::prefix('v1')->group(function () {
         Route::middleware('role:student')->group(function () {
             Route::post('borrowings', [BorrowingController::class, 'store']);
             Route::get('borrowings/me', [BorrowingController::class, 'myBorrowings']);
+            Route::post('borrowings/{id}/cancel', [BorrowingController::class, 'cancel']);
         });
 
         // Detail can be viewed by borrower owner (student) or staff
