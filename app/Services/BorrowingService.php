@@ -233,39 +233,6 @@ class BorrowingService
     }
 
     /**
-     * Auto-cancel uncollected APPROVED borrowings that exceeded the 1 school day deadline.
-     * Releases held stock back to available inventory.
-     */
-    public function expireUncollectedBorrowings(): int
-    {
-        $expiredBorrowings = Borrowing::where('status', Borrowing::STATUS_APPROVED)
-            ->whereNotNull('pickup_deadline')
-            ->where('pickup_deadline', '<', now())
-            ->with('items')
-            ->get();
-
-        $count = 0;
-        foreach ($expiredBorrowings as $borrowing) {
-            DB::transaction(function () use ($borrowing) {
-                foreach ($borrowing->items as $item) {
-                    /** @var Book $book */
-                    $book = Book::withTrashed()->lockForUpdate()->findOrFail($item->book_id);
-                    $book->increment('stock', $item->quantity);
-                }
-
-                $cancelNote = 'Batal otomatis: Melewati batas waktu pengambilan 1 hari sekolah.';
-                $borrowing->update([
-                    'status' => Borrowing::STATUS_CANCELLED,
-                    'notes' => trim(($borrowing->notes ? $borrowing->notes . ' | ' : '') . $cancelNote),
-                ]);
-            });
-            $count++;
-        }
-
-        return $count;
-    }
-
-    /**
      * Confirm that books are handed over to student (APPROVED -> BORROWED).
      * Stock was already held during approval, sets due_date (max 3 days).
      *
