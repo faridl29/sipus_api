@@ -47,6 +47,8 @@ jobs:
             php artisan optimize:clear
             php artisan route:cache
             php artisan l5-swagger:generate
+            php artisan borrowings:cancel-expired || true
+            (crontab -l 2>/dev/null | grep -F "schedule:run") || (crontab -l 2>/dev/null; echo "* * * * * cd /var/www/sipus_api && php artisan schedule:run >> /dev/null 2>&1") | crontab -
             sudo chown -R www-data:www-data /var/www/sipus_api/storage /var/www/sipus_api/bootstrap/cache
             sudo chmod -R 775 /var/www/sipus_api/storage /var/www/sipus_api/bootstrap/cache
             sudo systemctl reload php8.4-fpm
